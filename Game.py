@@ -1,8 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/py
 # -*- coding: utf-8 -*-
 
 import sys
 import pygame as pg
+import Events as evs
+from GameStates import StateStack
 
 
 class Game:
@@ -23,24 +25,30 @@ class Game:
         self.clock = pg.time.Clock()
         self.fps = 60
         self.states = states
-        self.state_name = start_state
-        self.state = self.states[self.state_name]
+        self.state_stack = StateStack()
+        self.state_stack.push(states[start_state]())
 
     def event_loop(self):
         '''
         Handles all events
         '''
         for event in pg.event.get():
-            self.state.get_event(event)
+            if event.type == evs.StateCallEvent:
+                self.state_stack.push(self.states[event.state](event.args))
+                self.state_stack.set_persistent(event.args)
+            elif event.type == evs.StateExitEvent:
+                self.state_stack.pop()
+                self.state_stack.send_callback(event.args)
+            else:
+                self.state_stack.get_event(event)
 
     def set_state(self, state_name, args):
         '''
-        Switch to specified state
+        Switch to specified state.DEPRECATED???
         :param state_name: name of state to switch on
         :param args: dictionary of arguments to be used by state
         '''
-        self.state_name = state_name
-        self.state = self.states[self.state_name]
+        self.state_stack.push(self.states[self.state_name]())
 
     def update(self, dt):
         '''
@@ -48,14 +56,16 @@ class Game:
         :param dt: time in millis since last frame
         '''
 
-        self.state.update(dt)
+        self.state_stack.update(dt)
+        if self.state_stack.peek().quit == True:
+            self.finish = True
 
     def draw(self):
         """
         Pass display to active state for drawing
         """
 
-        self.state.draw(self.screen)
+        self.state_stack.peek().draw(self.screen)
 
     def run(self):
         """
@@ -68,3 +78,4 @@ class Game:
             self.update(dt)
             self.draw()
             pg.display.update()
+
