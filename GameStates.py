@@ -4,6 +4,7 @@ import pygame as pg
 from Events import StateCallEvent, StateExitEvent
 from ResourceHelpers import StringsHelper
 import UI as ui
+from pytmx import load_pygame
 
 
 class StateStack:
@@ -59,7 +60,8 @@ class GameState:
         self.persist = persistent
 
     def get_event(self, event):
-        pass
+        if event.type == pg.QUIT:
+            self.quit = True
 
     def update(self, dt):
         pass
@@ -105,14 +107,10 @@ class SplashState(GameState):
         self.bg.fill(pg.Color('black'))
 
     def get_event(self, event):
-        if event.type == pg.QUIT:
-            self.quit = True
-        elif event.type == pg.KEYDOWN and event.key == pg.K_t:
+        super().get_event(event)
+        if event.type == pg.KEYDOWN and event.key == pg.K_t:
             args_dict = {'state': 'MAINMENU', 'args': None}
             self.call_state(args_dict)
-
-    def exit(self, args_dict=None):
-        super().exit()
 
     def call_state(self, args_dict=None):
         super(SplashState, self).call_state(args_dict)
@@ -149,9 +147,8 @@ class MainMenuState(GameState):
             surface.blit(i.text, i.rect)
 
     def get_event(self, event):
-        if event.type == pg.QUIT:
-            self.quit = True
-        elif event.type == pg.KEYDOWN and (event.key == pg.K_s or event.key == pg.K_DOWN):
+        super().get_event(event)
+        if event.type == pg.KEYDOWN and (event.key == pg.K_s or event.key == pg.K_DOWN):
             self.next_item()
         elif event.type == pg.KEYDOWN and (event.key == pg.K_w or event.key == pg.K_UP):
             self.prev_item()
@@ -175,7 +172,8 @@ class MainMenuState(GameState):
 
     def choose_item(self):
         if self.cursor_pos == 0:
-            pass
+            args_dict = {'state': 'WORLDMAP' ,'args': {'player_party': None, 'pos_x': 0, 'pos_y': 0, 'map_file': 'resources/maps/world_test.tmx'}}
+            self.call_state(args_dict)
         elif self.cursor_pos == 1:
             pass
         elif self.cursor_pos == 2:
@@ -184,3 +182,21 @@ class MainMenuState(GameState):
             pass
         elif self.cursor_pos == 4:
             self.quit = True
+
+
+class WorldMapState(GameState):
+    def __init__(self, persistent=None):
+        super().__init__(persistent)
+        self.player_party = self.persist['player_party']
+        self.tiled_map = load_pygame(self.persist['map_file'])
+
+    def draw(self, surface):
+        for layer in self.tiled_map.visible_layers:
+            for x, y, image in layer.tiles():
+                surface.blit(image, (x * 16, y * 16))
+                
+    def get_event(self, event):
+        super().get_event(event)
+        if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+            self.call_menu()
+            
