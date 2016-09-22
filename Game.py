@@ -10,11 +10,10 @@ class Game:
     Main engine class responsible for event handling,rendering and running game states
     """
 
-    def __init__(self, screen, states, start_state):
+    def __init__(self, screen, start_state):
         """
         Game engine initializator
         :param screen: pygame display
-        :param states: dict of game states
         :param start_state: name of starting state
         """
 
@@ -22,9 +21,8 @@ class Game:
         self.screen = screen
         self.clock = pg.time.Clock()
         self.fps = 60
-        self.states = states
         self.state_stack = StateStack()
-        self.state_stack.push(states[start_state]())
+        self.state_stack.push(start_state())
 
     def event_loop(self):
         """
@@ -32,7 +30,7 @@ class Game:
         """
         for event in pg.event.get():
             if event.type == evs.StateCallEvent:
-                self.state_stack.push(self.states[event.state](event.args))
+                self.state_stack.push(event.state(event.args))
                 self.state_stack.set_persistent(event.args)
             elif event.type == evs.StateExitEvent:
                 self.state_stack.pop()

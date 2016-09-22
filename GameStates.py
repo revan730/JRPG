@@ -4,6 +4,7 @@ import pygame as pg
 from Events import StateCallEvent, StateExitEvent
 from ResourceHelpers import StringsHelper
 import UI as ui
+from Player import PlayerParty, Camera
 from pytmx import load_pygame
 
 
@@ -84,8 +85,9 @@ class GameState:
         exit_event = pg.event.Event(StateExitEvent, args_dict)
         pg.event.post(exit_event)
 
-    def call_state(self, args_dict=None):
-        call_event = pg.event.Event(StateCallEvent, args_dict)
+    def call_state(self, state, args_dict=None):
+        event_args = {'state': state, 'args': args_dict}
+        call_event = pg.event.Event(StateCallEvent, event_args)
         pg.event.post(call_event)
 
     def on_return(self, callback):
@@ -109,11 +111,11 @@ class SplashState(GameState):
     def get_event(self, event):
         super().get_event(event)
         if event.type == pg.KEYDOWN and event.key == pg.K_t:
-            args_dict = {'state': 'MAINMENU', 'args': None}
-            self.call_state(args_dict)
+            args_dict = {}
+            self.call_state(MainMenuState, args_dict)
 
-    def call_state(self, args_dict=None):
-        super(SplashState, self).call_state(args_dict)
+    def call_state(self, state, args_dict=None):
+        super(SplashState, self).call_state(state, args_dict)
 
     def on_return(self, callback):
         print('Callback from called state:{}'.format(callback['r_val']))
@@ -172,8 +174,8 @@ class MainMenuState(GameState):
 
     def choose_item(self):
         if self.cursor_pos == 0:
-            args_dict = {'state': 'WORLDMAP' ,'args': {'player_party': None, 'pos_x': 0, 'pos_y': 0, 'map_file': 'resources/maps/world_test.tmx'}}
-            self.call_state(args_dict)
+            args_dict = {'player_party': None, 'pos_x': 0, 'pos_y': 0, 'map_file': 'resources/maps/world_test.tmx'}
+            self.call_state(WorldMapState, args_dict)
         elif self.cursor_pos == 1:
             pass
         elif self.cursor_pos == 2:
@@ -187,16 +189,50 @@ class MainMenuState(GameState):
 class WorldMapState(GameState):
     def __init__(self, persistent=None):
         super().__init__(persistent)
-        self.player_party = self.persist['player_party']
+        #self.player_party = self.persist['player_party']
         self.tiled_map = load_pygame(self.persist['map_file'])
+        self.player_party = PlayerParty(0, 0)
+        self.camera = Camera(Camera.camera_configure_world, 800, 800)
+
+    def update(self, dt):
+        self.player_party.update()
+        self.camera.update(self.player_party)
 
     def draw(self, surface):
         for layer in self.tiled_map.visible_layers:
             for x, y, image in layer.tiles():
-                surface.blit(image, (x * 16, y * 16))
+                scaled_image = pg.transform.scale(image, (32, 32))
+                surface.blit(scaled_image, self.camera.apply(pg.Rect(x * 32, y * 32, 32, 32)))
+            surface.blit(self.player_party.image, self.camera.apply(self.player_party.rect))
                 
     def get_event(self, event):
         super().get_event(event)
         if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
             self.call_menu()
+        elif event.type == pg.KEYDOWN and event.key == pg.K_w:
+            self.player_party.up = True
+        elif event.type == pg.KEYUP and event.key == pg.K_w:
+            self.player_party.up = False
+        elif event.type == pg.KEYDOWN and event.key == pg.K_s:
+            self.player_party.down = True
+        elif event.type == pg.KEYUP and event.key == pg.K_s:
+            self.player_party.down = False
+        elif event.type == pg.KEYDOWN and event.key == pg.K_a:
+            self.player_party.left = True
+        elif event.type == pg.KEYUP and event.key == pg.K_a:
+            self.player_party.left = False
+        elif event.type == pg.KEYDOWN and event.key == pg.K_d:
+            self.player_party.right = True
+        elif event.type == pg.KEYUP and event.key == pg.K_d:
+            self.player_party.right = False
+
             
+    def call_menu(self):#TODO: It's still not done!!
+        pass
+
+
+
+
+
+
+
