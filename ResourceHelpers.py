@@ -19,3 +19,37 @@ class StringsHelper:
         strings = pic.load(file)
 
         return strings
+
+
+class SettingsHelper:
+    def __init__(self):
+        self.settings_file = 'settings'
+        self.settings = {}
+        self.load()
+
+    def load(self):
+        if os.path.exists(self.settings_file):
+            with open(self.settings_file,'rb') as f:
+                try:
+                    self.settings = pic.load(f)
+                except pic.UnpicklingError:
+                    pass
+
+    def get(self, key, default):
+        if key in self.settings.keys():
+            return self.settings[key]
+        else:
+            return default
+
+    def set(self, key, value):
+        self.settings.update({key: value})
+        self.close()
+        self.load()
+
+    def close(self):
+        with open(self.settings_file, 'wb') as f:
+                pic._dump(self.settings, f)
+
+    def __del__(self):
+        self.close()
+

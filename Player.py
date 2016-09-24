@@ -1,10 +1,11 @@
 import pygame as pg
 
 
-class PlayerParty(pg.sprite.Sprite):#TODO: Must have a sprite, not just dumb pink rectangle
+class PlayerParty(pg.sprite.Sprite):  # TODO: Must have a sprite, not just dumb pink rectangle
     """
     Class used to represent player characters' party on world and location map
     """
+
     def __init__(self, x, y):
         """
 
@@ -21,17 +22,19 @@ class PlayerParty(pg.sprite.Sprite):#TODO: Must have a sprite, not just dumb pin
         self.up = self.down = self.left = self.right = False
 
     def update(self):
+        defvel = 10
+
         if self.left:
-            self.xvel = -10
+            self.xvel = -defvel
 
         if self.right:
-            self.xvel = 10
+            self.xvel = defvel
 
         if self.up:
-            self.yvel = -10
+            self.yvel = -defvel
 
         if self.down:
-            self.yvel = 10
+            self.yvel = defvel
 
         if not (self.left or self.right):
             self.xvel = 0
@@ -50,6 +53,7 @@ class Camera(object):
     """
     Camera class used to follow player party in world and location states
     """
+
     def __init__(self, camera_func, width, heigth):
         """
 
@@ -79,7 +83,7 @@ class Camera(object):
         """
         self.state = self.camera_func(self.state, target.rect)
 
-    def camera_configure_world(self, target_rect):
+    def camera_configure_world(self, target_rect):  # TODO: Screen resolution must be referenced,not constant
         l, t, _, _ = target_rect
         _, _, w, h = self
         l, t = -l + 800 / 2, -t + 640 / 2

@@ -82,7 +82,7 @@ class GameState:
         :param args_dict: dictionary of callback arguments,which will be received by previous state in stack
         :return:
         """
-        exit_event = pg.event.Event(StateExitEvent, args_dict)
+        exit_event = pg.event.Event(StateExitEvent, {'state': '','args': args_dict})
         pg.event.post(exit_event)
 
     def call_state(self, state, args_dict=None):
@@ -204,6 +204,9 @@ class WorldMapState(GameState):
                 scaled_image = pg.transform.scale(image, (32, 32))
                 surface.blit(scaled_image, self.camera.apply(pg.Rect(x * 32, y * 32, 32, 32)))
             surface.blit(self.player_party.image, self.camera.apply(self.player_party.rect))
+            
+    def exit(self, args_dict=None):
+        super(WorldMapState, self).exit(args_dict)
                 
     def get_event(self, event):
         super().get_event(event)
@@ -228,7 +231,7 @@ class WorldMapState(GameState):
 
             
     def call_menu(self):#TODO: It's still not done!!
-        pass
+        self.exit()
 
 
 
