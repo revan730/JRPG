@@ -132,7 +132,6 @@ class MainMenuState(GameState):
         self.bg = pg.Surface((800, 640))
         self.bg.fill(pg.Color('black'))
         menu_strings = helper.get_strings("main_menu")
-        self.cursor_pos = 0
 
         x = self.bg.get_width() / 2
         y = 250
@@ -141,6 +140,9 @@ class MainMenuState(GameState):
         for i in sorted(menu_strings.keys()):
             self.menu_items.append(ui.MenuItem(i, menu_strings[i], None, 36, 'white', 'dodgerblue', x, y))
             y += 30
+
+        self.cursor_pos = 0
+        self.set_cursor()
 
     def draw(self, surface):
         surface.blit(self.bg, (0, 0))
@@ -194,9 +196,10 @@ class WorldMapState(GameState):
         self.tiled_map = load_pygame(self.persist['map_file'])
         self.player_party = PlayerParty(360, 360)
         self.camera = Camera(Camera.camera_configure_world, 800, 800)
-        self.colliders = self.create_colliders()
         self.tile_size = self.tiled_map.tilewidth
         self.scale_factor = 2 # Tiles are 16x16,so we must draw them 2 times larger
+        self.scaled_size = self.tile_size * self.scale_factor
+        self.colliders = self.create_colliders()
         self.water = None
         if not detailed_water:
             self.water = pg.Surface((800, 640))
@@ -207,15 +210,15 @@ class WorldMapState(GameState):
         self.camera.update(self.player_party)
 
     def draw(self, surface):
-        scaled_size = self.tile_size * self.scale_factor
+        size = self.scaled_size
         if self.water:
             surface.blit(self.water, (0, 0))
         for layer in self.tiled_map.visible_layers:
             if layer.name == 'water' and self.water is not None:
                 continue
             for x, y, image in layer.tiles():
-                scaled_image = pg.transform.scale(image, (scaled_size, scaled_size))
-                surface.blit(scaled_image, self.camera.apply(pg.Rect(x * scaled_size, y * scaled_size, scaled_size, scaled_size)))
+                scaled_image = pg.transform.scale(image, (size, size))
+                surface.blit(scaled_image, self.camera.apply(pg.Rect(x * size, y * size, size, size)))
             surface.blit(self.player_party.image, self.camera.apply(self.player_party.rect))
             
     def exit(self, args_dict=None):
@@ -251,6 +254,7 @@ class WorldMapState(GameState):
         Create rectangles to be used as colliders for collision check
         :return: list of pygame rect objects
         """
+        size = self.scaled_size
         colliders = []
         tile_width = self.tiled_map.tilewidth
         for i in range(0, len(self.tiled_map.layers)):
@@ -259,7 +263,7 @@ class WorldMapState(GameState):
                 if p['walkable'] == 'false':
                     width = p['width']
                     height = p['height']
-                    rect = pg.Rect(x * 32, y * 32, width, height)
+                    rect = pg.Rect(x * size, y * size, width, height)
                     colliders.append(rect)
         return colliders
 

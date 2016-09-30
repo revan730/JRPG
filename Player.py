@@ -1,4 +1,5 @@
 import pygame as pg
+from ResourceHelpers import SettingsHelper as Settings
 
 
 class PlayerParty(pg.sprite.Sprite):  # TODO: Must have a sprite, not just dumb pink rectangle
@@ -41,7 +42,6 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Must have a sprite, not just dumb 
 
         if not (self.up or self.down):
             self.yvel = 0
-
 
         self.rect.x += self.xvel
         self.collide_x(colliders)
@@ -87,6 +87,9 @@ class Camera(object):
         :param heigth: height of camera's field of view
         :return:
         """
+        settings = Settings()
+        self.screen_w = settings.get('screen_width', 800)
+        self.screen_h = settings.get('settings_height', 640)
         self.width = width
         self.height = heigth
         self.camera_func = camera_func
@@ -106,16 +109,17 @@ class Camera(object):
         :param target: camera's target to focus
         :return:
         """
-        self.state = self.camera_func(self.state, target.rect)
+        self.state = self.camera_func(self.state, target.rect, (self.screen_w, self.screen_h))
 
-    def camera_configure_world(self, target_rect):  # TODO: Screen resolution must be referenced,not constant
+    def camera_configure_world(self, target_rect, screen_size):
         l, t, _, _ = target_rect
+        screen_w, screen_h = screen_size
         _, _, w, h = self
-        l, t = -l + 800 / 2, -t + 640 / 2
+        l, t = -l + screen_w / 2, -t + screen_h / 2
 
         l = min(0, l)
-        l = max(-(self.width - 800), l)
-        t = max(-(self.height - 640), t)
+        l = max(-(self.width - screen_w), l)
+        t = max(-(self.height - screen_h), t)
         t = min(0, t)
 
         return pg.Rect(l, t, w, h)
