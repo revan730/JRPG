@@ -21,8 +21,8 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Must have a sprite, not just dumb 
         self.yvel = 0
         self.up = self.down = self.left = self.right = False
 
-    def update(self):
-        defvel = 10
+    def update(self, colliders):
+        defvel = 5
 
         if self.left:
             self.xvel = -defvel
@@ -42,8 +42,33 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Must have a sprite, not just dumb 
         if not (self.up or self.down):
             self.yvel = 0
 
+
         self.rect.x += self.xvel
+        self.collide_x(colliders)
         self.rect.y += self.yvel
+        self.collide_y(colliders)
+
+    def collide_x(self, colliders):
+        """
+        Handles player party's collisions on x axis
+        :param colliders: list of pygame rect objects to check collision on
+        :return:
+        """
+        for c in colliders:
+            if self.rect.colliderect(c):
+                self.rect.x -= self.xvel
+                self.xvel = 0
+
+    def collide_y(self, colliders):
+        """
+        Handles player party's collisions on x axis
+        :param colliders: list of pygame rect objects to check collision on
+        :return:
+        """
+        for c in colliders:
+            if self.rect.colliderect(c):
+                self.rect.y -= self.yvel
+                self.yvel = 0
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
