@@ -5,7 +5,7 @@ import pickle as pic
 
 class StringsHelper:
     def __init__(self, locale):
-        self.res_dir = "resources/strings"
+        self.res_dir = "resources{}strings".format(os.sep)
         self.locale = locale
 
     def get_strings(self, file_name):
@@ -53,3 +53,20 @@ class SettingsHelper:
     def __del__(self):
         self.close()
 
+class AnimationsHelper:
+    def __init__(self):
+        self.res_dir = "resources{}sprites".format(os.sep)
+
+    def get_animation(self, creature, group):
+        """
+        Get list of tuples with paths to animation sprites
+        :param creature: name of animated creature
+        :param group: group of animation eg. 'down', 'up'
+        :return: list of tuple of string
+        """
+        anim = []
+
+        for x in range(1, 3):
+            anim.append(('{res}{sep}{creat}{sep}{group}_{x}.gif').format(res=self.res_dir, sep=os.sep, creat=creature, group=group, x=x))
+
+        return anim

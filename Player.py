@@ -1,8 +1,9 @@
 import pygame as pg
-from ResourceHelpers import SettingsHelper as Settings
+from ResourceHelpers import SettingsHelper as Settings, AnimationsHelper as Animations
+import pyganim
 
 
-class PlayerParty(pg.sprite.Sprite):  # TODO: Must have a sprite, not just dumb pink rectangle
+class PlayerParty(pg.sprite.Sprite):
     """
     Class used to represent player characters' party on world and location map
     """
@@ -15,33 +16,89 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Must have a sprite, not just dumb 
         :return:
         """
         pg.sprite.Sprite.__init__(self)
-        self.image = pg.Surface((16, 24))
-        self.image.fill(pg.Color('#f7646c'))
-        self.rect = pg.Rect(x, y, 16, 24)
+        self.image = pg.Surface((15, 18))
+        # self.image.fill(pg.Color('#f7646c'))
+        self.rect = pg.Rect(x, y, 15, 18)
         self.xvel = 0
         self.yvel = 0
         self.up = self.down = self.left = self.right = False
+        self.set_animations()
+
+    def set_animations(self):
+        anim_delay = 0.15
+        helper = Animations()
+
+        anim_up_f = helper.get_animation('warrior', 'up')
+        anim_down_f = helper.get_animation('warrior', 'down')
+        anim_left_f = helper.get_animation('warrior', 'left')
+        anim_right_f = helper.get_animation('warrior', 'right')
+        anim_idle_f = [(anim_down_f[0], 0.1)]
+        bg_color = "#7bd5fe"
+        self.image.set_colorkey(pg.Color(bg_color))
+
+        anim = []
+
+        for a in anim_up_f:
+            anim.append((a, anim_delay))
+
+        self.anim_up = pyganim.PygAnimation(anim)
+        self.anim_up.play()
+
+        anim.clear()
+
+        for a in anim_down_f:
+            anim.append((a, anim_delay))
+
+        self.anim_down = pyganim.PygAnimation(anim)
+        self.anim_down.play()
+
+        anim.clear()
+
+        for a in anim_left_f:
+            anim.append((a, anim_delay))
+
+        self.anim_left = pyganim.PygAnimation(anim)
+        self.anim_left.play()
+
+        anim.clear()
+
+        for a in anim_right_f:
+            anim.append((a, anim_delay))
+
+        self.anim_right = pyganim.PygAnimation(anim)
+        self.anim_right.play()
+
+        self.anim_idle = pyganim.PygAnimation(anim_idle_f)
+        self.anim_idle.play()
+        self.anim_idle.blit(self.image, (0, 0))
 
     def update(self, colliders):
-        defvel = 5
+        defvel = 2
 
         if self.left:
             self.xvel = -defvel
+            self.anim_left.blit(self.image, (0, 0))
 
         if self.right:
             self.xvel = defvel
+            self.anim_right.blit(self.image, (0, 0))
 
         if self.up:
             self.yvel = -defvel
+            self.anim_up.blit(self.image, (0, 0))
 
         if self.down:
             self.yvel = defvel
+            self.anim_down.blit(self.image, (0, 0))
 
         if not (self.left or self.right):
             self.xvel = 0
 
         if not (self.up or self.down):
             self.yvel = 0
+
+        if not (self.up or self.down or self.left or self.right):
+            self.anim_idle.blit(self.image, (0, 0))
 
         self.rect.x += self.xvel
         self.collide_x(colliders)
