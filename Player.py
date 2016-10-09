@@ -23,8 +23,10 @@ class PlayerParty(pg.sprite.Sprite):
         self.yvel = 0
         self.up = self.down = self.left = self.right = False
         self.set_animations()
+        self.current_anim = None
+        self.paused = False
 
-    def set_animations(self):
+    def set_animations(self): # TODO: Refactor
         anim_delay = 0.15
         helper = Animations()
 
@@ -32,7 +34,7 @@ class PlayerParty(pg.sprite.Sprite):
         anim_down_f = helper.get_animation('warrior', 'down')
         anim_left_f = helper.get_animation('warrior', 'left')
         anim_right_f = helper.get_animation('warrior', 'right')
-        anim_idle_f = [(anim_down_f[0], 0.1)]
+        anim_idle_f = [(anim_down_f[1], 0.1)]
         bg_color = "#7bd5fe"
         self.image.set_colorkey(pg.Color(bg_color))
 
@@ -75,35 +77,58 @@ class PlayerParty(pg.sprite.Sprite):
     def update(self, colliders):
         defvel = 2
 
-        if self.left:
-            self.xvel = -defvel
-            self.anim_left.blit(self.image, (0, 0))
+        if not self.paused:
+            if self.left:
+                self.xvel = -defvel
+                self.anim_left.blit(self.image, (0, 0))
+                self.current_anim = self.anim_left
 
-        if self.right:
-            self.xvel = defvel
-            self.anim_right.blit(self.image, (0, 0))
+            if self.right:
+                self.xvel = defvel
+                self.anim_right.blit(self.image, (0, 0))
+                self.current_anim = self.anim_right
 
-        if self.up:
-            self.yvel = -defvel
-            self.anim_up.blit(self.image, (0, 0))
+            if self.up:
+                self.yvel = -defvel
+                self.anim_up.blit(self.image, (0, 0))
+                self.current_anim = self.anim_up
 
-        if self.down:
-            self.yvel = defvel
-            self.anim_down.blit(self.image, (0, 0))
+            if self.down:
+                self.yvel = defvel
+                self.anim_down.blit(self.image, (0, 0))
+                self.current_anim = self.anim_down
 
-        if not (self.left or self.right):
-            self.xvel = 0
+            if not (self.left or self.right):
+                self.xvel = 0
 
-        if not (self.up or self.down):
-            self.yvel = 0
+            if not (self.up or self.down):
+                self.yvel = 0
 
-        if not (self.up or self.down or self.left or self.right):
-            self.anim_idle.blit(self.image, (0, 0))
+            if not (self.up or self.down or self.left or self.right):
+                self.anim_idle.blit(self.image, (0, 0))
+                self.current_anim = self.anim_down
 
-        self.rect.x += self.xvel
-        self.collide_x(colliders)
-        self.rect.y += self.yvel
-        self.collide_y(colliders)
+            self.rect.x += self.xvel
+            self.collide_x(colliders)
+            self.rect.y += self.yvel
+            self.collide_y(colliders)
+
+    def pause(self):
+        """
+        Stop player animation and movement (called on state pause)
+        :return:
+        """
+        self.left = self.right = self.up = self.down = False
+        self.current_anim.pause()
+        self.paused = True
+
+    def resume(self):
+        """
+        Resume player animation and movement
+        :return:
+        """
+        self.current_anim.play()
+        self.paused = False
 
     def collide_x(self, colliders):
         """

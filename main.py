@@ -6,7 +6,7 @@ from GameStates import SplashState, MainMenuState, WorldMapState
 import pygame as pg
 
 pg.init()
-DISPLAY = (800, 640)
+DISPLAY = (800, 600)
 screen = pg.display.set_mode(DISPLAY)
 pg.display.set_caption('Sephiroth engine')
 g = Game(screen, MainMenuState)

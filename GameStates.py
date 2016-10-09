@@ -81,7 +81,7 @@ class GameState:
         :param args_dict: dictionary of callback arguments,which will be received by previous state in stack
         :return:
         """
-        exit_event = pg.event.Event(StateExitEvent, {'state': '','args': args_dict})
+        exit_event = pg.event.Event(StateExitEvent, {'state': '', 'args': args_dict})
         pg.event.post(exit_event)
 
     def call_state(self, state, args_dict=None):
@@ -129,7 +129,10 @@ class MainMenuState(GameState):
         super().__init__(persistent)
         helper = StringsHelper("en")
         self.font = pg.font.Font(None, 24)
-        self.bg = pg.Surface((800, 640))
+        settings = SettingsHelper()
+        self.screen_width = settings.get('screen_width', 800)
+        self.screen_height = settings.get('screen_height', 600)
+        self.bg = pg.Surface((self.screen_width, self.screen_height))
         self.bg.fill(pg.Color('black'))
         menu_strings = helper.get_strings("main_menu")
 
@@ -193,21 +196,28 @@ class WorldMapState(GameState):
         #self.player_party = self.persist['player_party']
         settings = SettingsHelper()
         detailed_water = settings.get('world_water_tiled', False)
+        self.screen_width = settings.get('screen_width', 800)
+        self.screen_height = settings.get('screen_height', 600)
         self.tiled_map = load_pygame(self.persist['map_file'])
         self.player_party = PlayerParty(360, 360)
-        self.camera = Camera(Camera.camera_configure_world, 800, 800)
+        self.camera = Camera(Camera.camera_configure_world, self.screen_width, self.screen_width)
         self.tile_size = self.tiled_map.tilewidth
         self.scale_factor = 2 # Tiles are 16x16,so we must draw them 2 times larger
         self.scaled_size = self.tile_size * self.scale_factor
         self.colliders = self.create_colliders()
         self.water = None
         if not detailed_water:
-            self.water = pg.Surface((800, 640))
+            self.water = pg.Surface((self.screen_width, self.screen_height))
             self.water.fill(pg.Color(self.tiled_map.background_color))
+        self.pause_menu = None
 
     def update(self, dt):
         self.player_party.update(self.colliders)
         self.camera.update(self.player_party)
+        if self.pause_menu is not None:
+            if self.pause_menu.quit == True:
+                self.pause_menu = None
+                self.on_resume()
 
     def draw(self, surface):
         size = self.scaled_size
@@ -220,34 +230,54 @@ class WorldMapState(GameState):
                 scaled_image = pg.transform.scale(image, (size, size))
                 surface.blit(scaled_image, self.camera.apply(pg.Rect(x * size, y * size, size, size)))
             surface.blit(self.player_party.image, self.camera.apply(self.player_party.rect))
+        if self.pause_menu is not None:
+            self.pause_menu.draw(surface)
             
     def exit(self, args_dict=None):
         super(WorldMapState, self).exit(args_dict)
                 
     def get_event(self, event):
         super().get_event(event)
-        if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
-            self.call_menu()
-        elif event.type == pg.KEYDOWN and event.key == pg.K_w:
-            self.player_party.up = True
-        elif event.type == pg.KEYUP and event.key == pg.K_w:
-            self.player_party.up = False
-        elif event.type == pg.KEYDOWN and event.key == pg.K_s:
-            self.player_party.down = True
-        elif event.type == pg.KEYUP and event.key == pg.K_s:
-            self.player_party.down = False
-        elif event.type == pg.KEYDOWN and event.key == pg.K_a:
-            self.player_party.left = True
-        elif event.type == pg.KEYUP and event.key == pg.K_a:
-            self.player_party.left = False
-        elif event.type == pg.KEYDOWN and event.key == pg.K_d:
-            self.player_party.right = True
-        elif event.type == pg.KEYUP and event.key == pg.K_d:
-            self.player_party.right = False
+        if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE: # Handle menu (de)activation
+            self.toggle_menu()
+        elif self.pause_menu is None: # Handle player control only if menu is not active
+            if event.type == pg.KEYDOWN and event.key == pg.K_w:
+                self.player_party.up = True
+            elif event.type == pg.KEYUP and event.key == pg.K_w:
+                self.player_party.up = False
+            elif event.type == pg.KEYDOWN and event.key == pg.K_s:
+                self.player_party.down = True
+            elif event.type == pg.KEYUP and event.key == pg.K_s:
+                self.player_party.down = False
+            elif event.type == pg.KEYDOWN and event.key == pg.K_a:
+                self.player_party.left = True
+            elif event.type == pg.KEYUP and event.key == pg.K_a:
+                self.player_party.left = False
+            elif event.type == pg.KEYDOWN and event.key == pg.K_d:
+                self.player_party.right = True
+            elif event.type == pg.KEYUP and event.key == pg.K_d:
+                self.player_party.right = False
+        elif self.pause_menu is not None and event.type == pg.KEYDOWN: # Let the menu handle key input events
+            self.pause_menu.update(event.key)
 
-            
-    def call_menu(self):  # TODO: It's still not done!!
-        self.exit()
+    def toggle_menu(self):
+        if self.pause_menu is None:
+            self.on_pause()
+            width = self.screen_width / 4
+            height = self.screen_height / 4
+            x = self.screen_width / 2 - width / 2
+            y = self.screen_height / 2 - height / 2
+            self.pause_menu = ui.PauseWindow(x, y, width, height)
+        else:
+            self.pause_menu = None
+            self.on_resume()
+
+    def on_pause(self):
+        self.player_party.pause()
+
+    def on_resume(self):
+        self.player_party.resume()
+
 
     def create_colliders(self):
         """

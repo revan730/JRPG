@@ -33,7 +33,7 @@ class SettingsHelper:
                 try:
                     self.settings = pic.load(f)
                 except pic.UnpicklingError:
-                    pass
+                    raise RuntimeError('Unable to read settings file')
 
     def get(self, key, default):
         if key in self.settings.keys():
