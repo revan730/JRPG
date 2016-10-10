@@ -1,5 +1,6 @@
 import pygame as pg
 from ResourceHelpers import SettingsHelper as Settings, AnimationsHelper as Animations
+from Events import TeleportEvent
 import pyganim
 
 
@@ -26,10 +27,55 @@ class PlayerParty(pg.sprite.Sprite):
         self.current_anim = None
         self.paused = False
 
-    def set_animations(self): # TODO: Refactor
+    def set_animations(self):
+        """
+        Load and initialize animations for player actions
+        :return:
+        """
         anim_delay = 0.15
-        helper = Animations()
+        self.init_animations(anim_delay, *self.load_animations())
 
+    def init_animations(self, anim_delay, anim_down_f, anim_idle_f, anim_left_f, anim_right_f, anim_up_f):
+        """
+        Initialize animations loaded form sprite files
+        :param anim_delay: delay between animation frames
+        :param anim_down_f: tuple of down walk animation frame file paths
+        :param anim_idle_f: idle sprite
+        :param anim_left_f: tuple of left walk animation frame file paths
+        :param anim_right_f: tuple of right walk animation frame file paths
+        :param anim_up_f: tuple of up walk animation frame file paths
+        :return:
+        """
+        anim = []
+        for a in anim_up_f:
+            anim.append((a, anim_delay))
+        self.anim_up = pyganim.PygAnimation(anim)
+        self.anim_up.play()
+        anim.clear()
+        for a in anim_down_f:
+            anim.append((a, anim_delay))
+        self.anim_down = pyganim.PygAnimation(anim)
+        self.anim_down.play()
+        anim.clear()
+        for a in anim_left_f:
+            anim.append((a, anim_delay))
+        self.anim_left = pyganim.PygAnimation(anim)
+        self.anim_left.play()
+        anim.clear()
+        for a in anim_right_f:
+            anim.append((a, anim_delay))
+        self.anim_right = pyganim.PygAnimation(anim)
+        self.anim_right.play()
+        self.anim_idle = pyganim.PygAnimation(anim_idle_f)
+        self.anim_idle.play()
+        self.anim_idle.blit(self.image, (0, 0))
+
+    def load_animations(self):
+        """
+        Get all player animations paths
+        :return: all player animations
+        """
+        helper = Animations()
         anim_up_f = helper.get_animation('warrior', 'up')
         anim_down_f = helper.get_animation('warrior', 'down')
         anim_left_f = helper.get_animation('warrior', 'left')
@@ -37,44 +83,9 @@ class PlayerParty(pg.sprite.Sprite):
         anim_idle_f = [(anim_down_f[1], 0.1)]
         bg_color = "#7bd5fe"
         self.image.set_colorkey(pg.Color(bg_color))
+        return anim_down_f, anim_idle_f, anim_left_f, anim_right_f, anim_up_f
 
-        anim = []
-
-        for a in anim_up_f:
-            anim.append((a, anim_delay))
-
-        self.anim_up = pyganim.PygAnimation(anim)
-        self.anim_up.play()
-
-        anim.clear()
-
-        for a in anim_down_f:
-            anim.append((a, anim_delay))
-
-        self.anim_down = pyganim.PygAnimation(anim)
-        self.anim_down.play()
-
-        anim.clear()
-
-        for a in anim_left_f:
-            anim.append((a, anim_delay))
-
-        self.anim_left = pyganim.PygAnimation(anim)
-        self.anim_left.play()
-
-        anim.clear()
-
-        for a in anim_right_f:
-            anim.append((a, anim_delay))
-
-        self.anim_right = pyganim.PygAnimation(anim)
-        self.anim_right.play()
-
-        self.anim_idle = pyganim.PygAnimation(anim_idle_f)
-        self.anim_idle.play()
-        self.anim_idle.blit(self.image, (0, 0))
-
-    def update(self, colliders):
+    def update(self, colliders, teleports):
         defvel = 2
 
         if not self.paused:
@@ -112,6 +123,8 @@ class PlayerParty(pg.sprite.Sprite):
             self.collide_x(colliders)
             self.rect.y += self.yvel
             self.collide_y(colliders)
+
+            self.collide_teleport(teleports)
 
     def pause(self):
         """
@@ -151,6 +164,18 @@ class PlayerParty(pg.sprite.Sprite):
             if self.rect.colliderect(c):
                 self.rect.y -= self.yvel
                 self.yvel = 0
+
+    def collide_teleport(self, teleports):
+        """
+        Handles player party's collision on teleports,
+        :param teleports: list of pygame rect object of teleport tiles to check on
+        :return:
+        """
+        for t in teleports:
+            if self.rect.colliderect(t.rect):
+                event_args = {'teleport': t}
+                tp_event = pg.event.Event(TeleportEvent,event_args)
+                pg.event.post(tp_event)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
@@ -205,3 +230,23 @@ class Camera(object):
         t = min(0, t)
 
         return pg.Rect(l, t, w, h)
+
+
+class Teleport:
+    """
+    Class which represents on map teleport tile, with it's destination and collider rectangle
+    """
+
+    def __init__(self, rect, x, y, map_f):
+        """
+        Teleport object constructor
+        :param rect: pygame rect object
+        :param x: player x coord on new location
+        :param y: player y coord on new location
+        :param map_f: map file path
+        :return:
+        """
+        self.rect = rect
+        self.pos_x = x
+        self.pos_y = y
+        self.map_f = map_f

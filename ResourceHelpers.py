@@ -70,3 +70,9 @@ class AnimationsHelper:
             anim.append(('{res}{sep}{creat}{sep}{group}_{x}.gif').format(res=self.res_dir, sep=os.sep, creat=creature, group=group, x=x))
 
         return anim
+
+class MapsHelper:
+    @staticmethod
+    def get_map(map_name):
+        res_dir = 'resources{}maps'.format(os.sep)
+        return '{res}{sep}{name}.tmx'.format(res=res_dir, sep= os.sep, name=map_name)

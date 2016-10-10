@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
-from Events import StateCallEvent, StateExitEvent
-from ResourceHelpers import StringsHelper, SettingsHelper
+from Events import StateCallEvent, StateExitEvent, TeleportEvent
+from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper
 import UI as ui
-from Player import PlayerParty, Camera
+from Player import PlayerParty, Camera, Teleport
 from pytmx import load_pygame
 
 
@@ -193,18 +193,21 @@ class MainMenuState(GameState):
 class WorldMapState(GameState):
     def __init__(self, persistent=None):
         super().__init__(persistent)
-        #self.player_party = self.persist['player_party']
         settings = SettingsHelper()
         detailed_water = settings.get('world_water_tiled', False)
         self.screen_width = settings.get('screen_width', 800)
         self.screen_height = settings.get('screen_height', 600)
         self.tiled_map = load_pygame(self.persist['map_file'])
-        self.player_party = PlayerParty(360, 360)
+        if self.persist['player_party'] is not None:
+            self.player_party = self.persist['player_party']
+        else:
+            self.player_party = PlayerParty(360, 360)
         self.camera = Camera(Camera.camera_configure_world, self.screen_width, self.screen_width)
         self.tile_size = self.tiled_map.tilewidth
         self.scale_factor = 2 # Tiles are 16x16,so we must draw them 2 times larger
         self.scaled_size = self.tile_size * self.scale_factor
         self.colliders = self.create_colliders()
+        self.teleports = self.create_teleports()
         self.water = None
         if not detailed_water:
             self.water = pg.Surface((self.screen_width, self.screen_height))
@@ -212,7 +215,7 @@ class WorldMapState(GameState):
         self.pause_menu = None
 
     def update(self, dt):
-        self.player_party.update(self.colliders)
+        self.player_party.update(self.colliders, self.teleports)
         self.camera.update(self.player_party)
         if self.pause_menu is not None:
             if self.pause_menu.quit == True:
@@ -259,6 +262,10 @@ class WorldMapState(GameState):
                 self.player_party.right = False
         elif self.pause_menu is not None and event.type == pg.KEYDOWN: # Let the menu handle key input events
             self.pause_menu.update(event.key)
+        if event.type == TeleportEvent:
+            tp = event.teleport
+            args_dict = {'player_party': self.player_party, 'pos_x': tp.pos_x , 'pos_y': tp.pos_y, 'map_file': tp.map_f }
+            self.call_state(LocalMapState, args_dict)
 
     def toggle_menu(self):
         if self.pause_menu is None:
@@ -286,7 +293,6 @@ class WorldMapState(GameState):
         """
         size = self.scaled_size
         colliders = []
-        tile_width = self.tiled_map.tilewidth
         for i in range(0, len(self.tiled_map.layers)):
             for x, y, image in self.tiled_map.layers[i].tiles():
                 p = self.tiled_map.get_tile_properties(x, y, i)
@@ -297,9 +303,36 @@ class WorldMapState(GameState):
                     colliders.append(rect)
         return colliders
 
+    def create_teleports(self):
+        """
+        Create rectangles to be used as colliders for teleport check
+        :return: list of pygame rect objects
+        """
+        size = self.scaled_size
+        teleports = []
+        tile_width = self.tiled_map.tilewidth
+        for x, y, image in self.tiled_map.get_layer_by_name('teleports').tiles():
+            rect = pg.Rect(x * size, y * size, size / 2, size / 2) # player collides with teleport too early if size is not halfed
+            p = self.tiled_map.get_tile_properties(x, y, 3)
+            pos_x = int(p['pos_x'])
+            pos_y = int(p['pos_y'])
+            map_f = MapsHelper.get_map(p['map_f'])
+            tp = Teleport(rect, pos_x, pos_y, map_f)
+            teleports.append(tp)
+
+        return teleports
 
 
+class LocalMapState(GameState): # TODO: Not fully implemented
+    def __init__(self, persistent):
+        super().__init__(persistent)
+        self.font = pg.font.Font(None, 36)
+        self.text = self.font.render('Local map state', True, pg.Color('green'))
+        self.text_rect = self.text.get_rect(center=self.screen_rect.center)
+        self.bg = pg.Surface((800, 640))
+        self.bg.fill(pg.Color('black'))
 
-
-
+    def draw(self, surface):
+        surface.blit(self.bg, (0, 0))
+        surface.blit(self.text, self.text_rect)
 
