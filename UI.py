@@ -110,8 +110,8 @@ class PauseWindow(Window):
         if self.cursor_pos == 0:
             self.quit = True
         elif self.cursor_pos == 1:
-            exit_event = pg.event.Event(StateExitEvent, {'state': '', 'args': None})
-            pg.event.post(exit_event)
+            quit_event = pg.event.Event(pg.QUIT)
+            pg.event.post(quit_event)
 
     def set_cursor(self):
         self.menu_items[self.cursor_pos].set_active()

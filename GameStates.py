@@ -190,11 +190,10 @@ class MainMenuState(GameState):
             self.quit = True
 
 
-class WorldMapState(GameState):
-    def __init__(self, persistent=None):
+class MapState(GameState):
+    def __init__(self, persistent):
         super().__init__(persistent)
         settings = SettingsHelper()
-        detailed_water = settings.get('world_water_tiled', False)
         self.screen_width = settings.get('screen_width', 800)
         self.screen_height = settings.get('screen_height', 600)
         self.tiled_map = load_pygame(self.persist['map_file'])
@@ -208,10 +207,6 @@ class WorldMapState(GameState):
         self.scaled_size = self.tile_size * self.scale_factor
         self.colliders = self.create_colliders()
         self.teleports = self.create_teleports()
-        self.water = None
-        if not detailed_water:
-            self.water = pg.Surface((self.screen_width, self.screen_height))
-            self.water.fill(pg.Color(self.tiled_map.background_color))
         self.pause_menu = None
 
     def update(self, dt):
@@ -223,22 +218,9 @@ class WorldMapState(GameState):
                 self.on_resume()
 
     def draw(self, surface):
-        size = self.scaled_size
-        if self.water:
-            surface.blit(self.water, (0, 0))
-        for layer in self.tiled_map.visible_layers:
-            if layer.name == 'water' and self.water is not None:
-                continue
-            for x, y, image in layer.tiles():
-                scaled_image = pg.transform.scale(image, (size, size))
-                surface.blit(scaled_image, self.camera.apply(pg.Rect(x * size, y * size, size, size)))
-            surface.blit(self.player_party.image, self.camera.apply(self.player_party.rect))
-        if self.pause_menu is not None:
-            self.pause_menu.draw(surface)
-            
-    def exit(self, args_dict=None):
-        super(WorldMapState, self).exit(args_dict)
-                
+        if self.bg:
+            surface.blit(self.bg, (0, 0))
+
     def get_event(self, event):
         super().get_event(event)
         if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE: # Handle menu (de)activation
@@ -262,10 +244,6 @@ class WorldMapState(GameState):
                 self.player_party.right = False
         elif self.pause_menu is not None and event.type == pg.KEYDOWN: # Let the menu handle key input events
             self.pause_menu.update(event.key)
-        if event.type == TeleportEvent:
-            tp = event.teleport
-            args_dict = {'player_party': self.player_party, 'pos_x': tp.pos_x , 'pos_y': tp.pos_y, 'map_file': tp.map_f }
-            self.call_state(LocalMapState, args_dict)
 
     def toggle_menu(self):
         if self.pause_menu is None:
@@ -285,7 +263,6 @@ class WorldMapState(GameState):
     def on_resume(self):
         self.player_party.resume()
 
-
     def create_colliders(self):
         """
         Create rectangles to be used as colliders for collision check
@@ -299,7 +276,7 @@ class WorldMapState(GameState):
                 if p['walkable'] == 'false':
                     width = p['width']
                     height = p['height']
-                    rect = pg.Rect(x * size, y * size, width, height)
+                    rect = pg.Rect(x * size, y * size, self.scaled_size, self.scaled_size)
                     colliders.append(rect)
         return colliders
 
@@ -311,28 +288,96 @@ class WorldMapState(GameState):
         size = self.scaled_size
         teleports = []
         tile_width = self.tiled_map.tilewidth
+        tp_index = int(self.tiled_map.properties['tp_layer_index'])
         for x, y, image in self.tiled_map.get_layer_by_name('teleports').tiles():
             rect = pg.Rect(x * size, y * size, size / 2, size / 2) # player collides with teleport too early if size is not halfed
-            p = self.tiled_map.get_tile_properties(x, y, 3)
+            p = self.tiled_map.get_tile_properties(x, y, tp_index)
             pos_x = int(p['pos_x'])
             pos_y = int(p['pos_y'])
             map_f = MapsHelper.get_map(p['map_f'])
-            tp = Teleport(rect, pos_x, pos_y, map_f)
+            world = p['world']
+            tp = Teleport(rect, pos_x, pos_y, map_f, world)
             teleports.append(tp)
 
         return teleports
 
-
-class LocalMapState(GameState): # TODO: Not fully implemented
+class WorldMapState(MapState):
     def __init__(self, persistent):
         super().__init__(persistent)
-        self.font = pg.font.Font(None, 36)
-        self.text = self.font.render('Local map state', True, pg.Color('green'))
-        self.text_rect = self.text.get_rect(center=self.screen_rect.center)
-        self.bg = pg.Surface((800, 640))
-        self.bg.fill(pg.Color('black'))
+        settings = SettingsHelper()
+        detailed_water = settings.get('world_water_tiled', False)
+        self.bg = None
+        self.draw_colliders = False
+        if not detailed_water:
+            self.bg = pg.Surface((self.screen_width, self.screen_height))
+            self.bg.fill(pg.Color(self.tiled_map.background_color))
+
+    def update(self, dt):
+        super().update(dt)
 
     def draw(self, surface):
-        surface.blit(self.bg, (0, 0))
-        surface.blit(self.text, self.text_rect)
+        super().draw(surface)
+        size = self.scaled_size
+        for layer in self.tiled_map.visible_layers:
+            if layer.name == 'water' and self.bg is not None:
+                continue
+            for x, y, image in layer.tiles():
+                scaled_image = pg.transform.scale(image, (size, size))
+                surface.blit(scaled_image, self.camera.apply(pg.Rect(x * size, y * size, size, size)))
+            surface.blit(self.player_party.image, self.camera.apply(self.player_party.rect))
+
+        if self.draw_colliders:
+            col_fill = pg.Surface((self.tile_size * 2, self.tile_size * 2))
+            col_fill.fill(pg.Color('black'))
+            for rect in self.colliders:
+                surface.blit(col_fill, self.camera.apply(rect))
+        if self.pause_menu is not None:
+            self.pause_menu.draw(surface)
+            
+    def exit(self, args_dict=None):
+        super(WorldMapState, self).exit(args_dict)
+
+    def on_return(self, callback):
+        self.tiled_map = load_pygame(callback['map_f'])
+        self.player_party = callback['player_party']
+        self.player_party.set_pos(callback['pos_x'], callback['pos_y'])
+                
+    def get_event(self, event):
+        super().get_event(event)
+        if event.type == TeleportEvent and event.teleport.world == 'localworld':
+            tp = event.teleport
+            args_dict = {'player_party': self.player_party, 'pos_x': tp.pos_x , 'pos_y': tp.pos_y, 'map_file': tp.map_f}
+            self.call_state(LocalMapState, args_dict)
+        if event.type == pg.KEYDOWN and event.key == pg.K_c:
+            self.draw_colliders = not self.draw_colliders
+
+
+class LocalMapState(MapState): # TODO: Not fully implemented
+    def __init__(self, persistent):
+        super().__init__(persistent)
+        self.player_party.set_pos(persistent['pos_x'], persistent['pos_y'])
+        self.bg = pg.Surface((self.screen_width, self.screen_height))
+        self.bg.fill(pg.Color(self.tiled_map.background_color))
+
+    def draw(self, surface):
+        super().draw(surface)
+        size = self.scaled_size
+        for layer in self.tiled_map.visible_layers:
+            for x, y, image in layer.tiles():
+                scaled_image = pg.transform.scale(image, (size, size))
+                surface.blit(scaled_image, self.camera.apply(pg.Rect(x * size, y * size, size, size)))
+            surface.blit(self.player_party.image, self.camera.apply(self.player_party.rect))
+        if self.pause_menu is not None:
+            self.pause_menu.draw(surface)
+
+    def get_event(self, event):
+        super().get_event(event)
+        if event.type == TeleportEvent and event.teleport.world == 'overworld':
+            tp = event.teleport
+            callback_args = {'player_party': self.player_party, 'pos_x': tp.pos_x, 'pos_y': tp.pos_y, 'map_f': tp.map_f}
+            self.exit(callback_args)
+        elif event.type == TeleportEvent and event.teleport.world == 'localworld':
+            tp = event.teleport
+            self.tiled_map = load_pygame(tp.map_f)
+            self.player_party.set_pos(tp.pos_x, tp.pos_y)
 

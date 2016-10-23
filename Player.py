@@ -27,6 +27,10 @@ class PlayerParty(pg.sprite.Sprite):
         self.current_anim = None
         self.paused = False
 
+    def set_pos(self, x ,y):
+        self.rect.x = x
+        self.rect.y = y
+
     def set_animations(self):
         """
         Load and initialize animations for player actions
@@ -237,16 +241,18 @@ class Teleport:
     Class which represents on map teleport tile, with it's destination and collider rectangle
     """
 
-    def __init__(self, rect, x, y, map_f):
+    def __init__(self, rect, x, y, map_f, world):
         """
         Teleport object constructor
         :param rect: pygame rect object
         :param x: player x coord on new location
         :param y: player y coord on new location
         :param map_f: map file path
+        :param world: world, either 'overworld' or 'localworld'
         :return:
         """
         self.rect = rect
         self.pos_x = x
         self.pos_y = y
         self.map_f = map_f
+        self.world = world
