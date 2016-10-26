@@ -26,8 +26,17 @@ class PlayerParty(pg.sprite.Sprite):
         self.set_animations()
         self.current_anim = None
         self.paused = False
+        self.create_party()
 
-    def set_pos(self, x ,y):
+    def create_party(self):
+        """
+        Create party members for a new game
+        :return:
+        """
+        self.warrior = Warrior()
+        self.mage = Mage()
+
+    def set_pos(self, x, y):
         self.rect.x = x
         self.rect.y = y
 
@@ -178,7 +187,7 @@ class PlayerParty(pg.sprite.Sprite):
         for t in teleports:
             if self.rect.colliderect(t.rect):
                 event_args = {'teleport': t}
-                tp_event = pg.event.Event(TeleportEvent,event_args)
+                tp_event = pg.event.Event(TeleportEvent, event_args)
                 pg.event.post(tp_event)
 
     def draw(self, surface):
@@ -256,3 +265,110 @@ class Teleport:
         self.pos_y = y
         self.map_f = map_f
         self.world = world
+
+
+class BaseMember:
+    """
+    Represents base game class to be derived by actual classes like Warrior
+    """
+
+    def __init__(self):
+        self.LVL = 1  # Starting level is 1
+        self.MAX_LVL = 25
+        self.spells = []  # List of spell objects which Warrior can cast
+        self.inventory = "PLACEHOLDER - BaseInventory class"  # Warrior's inventory
+        self.EXP = 0  # Starting explerience
+        self.UP_EXP = 0
+        self.INT = 0
+        self.STR = 0
+        self.DEX = 0
+        self.DUR = 0
+        self.INT_INC = 0
+        self.STR_INC = 0
+        self.DEX_INC = 0
+        self.DUR_INC = 0
+        self.hp_multiplier = 0
+        self.mp_multiplier = 0
+        self.defence_multiplier = 0
+        self.dmg_multiplier = 0
+        self.exp_multiplier = 0
+
+    def add_exp(self, exp):
+        """
+        Called when member gets experience points
+        :param exp: int value of achieved experience
+        :return:
+        """
+        self.EXP += exp
+        if self.EXP >= self.UP_EXP:
+            self.lvl_up()
+
+    def lvl_up(self):
+        """
+        Called when member reaches maximum experience for current level.Counts new base stats values
+        :return:
+        """
+        if self.LVL < self.MAX_LVL:
+            self.LVL += 1
+            self.UP_EXP = self.LVL * self.exp_multiplier
+            self.INT += self.INT_INC
+            self.STR += self.STR_INC
+            self.DEX += self.DEX_INC
+            self.DUR += self.DUR_INC
+            self.recalculate_stats()
+
+    def recalculate_stats(self):
+        self.MAX_HP = self.DUR * self.hp_multiplier  # Warrior's starting heals points at level 1
+        self.HP = self.MAX_HP  # Current HP, always regenerates to maximum when not in battle
+        self.MAX_MP = self.INT * self.mp_multiplier  # Warrior's starting mana points, he doesn't have much because he's not a magic-oriented class
+        self.MP = self.MAX_MP  # Also regenerates after battle. Warrior only has some minor skills which require MP to limit number of their usage
+        self.DMG = self.STR * self.dmg_multiplier  # Starting physical damage
+        self.MAX_DEF = self.DEX * self.defence_multiplier  # Starting defence (affects only physical damage)
+
+
+class Warrior(BaseMember):
+    """
+    Represents warrior game class, with it's stats,sprites etc.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.INT = 10  # Intelligence, influences mana points
+        self.STR = 15  # Strength, influences physical damage
+        self.DEX = 10  # Dexterity, influences pure damage taken from physical attacks
+        self.DUR = 15  # Durability, influences maximal heath
+        self.hp_multiplier = 2  # 2 HP points for each durability point
+        self.mp_multiplier = 1  # Only 1 MP for each intelligence point
+        self.dmg_multiplier = 2  # 2 Attack points for each strength point
+        self.defence_multiplier = 2  # 2 Attack points can be dodged for every dexterity point
+        self.exp_multiplier = 10  # Determines how much experience must be achieved for level up
+        self.INT_INC = 1
+        self.STR_INC = 2
+        self.DEX_INC = 1
+        self.DUR_INC = 2
+        self.recalculate_stats()
+
+
+class Mage(BaseMember):
+    """
+    Represents Mage game class, with it's stats, sprites etc.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.INT = 15
+        self.STR = 10
+        self.DEX = 5
+        self.DUR = 10
+        self.hp_multiplier = 1
+        self.mp_multiplier = 2
+        self.dmg_multiplier = 1
+        self.defence_multiplier = 1
+        self.exp_multiplier = 12
+        self.INT_INC = 2
+        self.STR_INC = 1
+        self.DEX_INC = 1
+        self.DUR_INC = 2
+        self.recalculate_stats()
+
+

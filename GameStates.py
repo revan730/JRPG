@@ -4,7 +4,7 @@ import pygame as pg
 from Events import StateCallEvent, StateExitEvent, TeleportEvent
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper
 import UI as ui
-from Player import PlayerParty, Camera, Teleport
+from Player import PlayerParty, Camera, Teleport, Warrior
 from pytmx import load_pygame
 
 
@@ -350,6 +350,11 @@ class WorldMapState(MapState):
             self.call_state(LocalMapState, args_dict)
         if event.type == pg.KEYDOWN and event.key == pg.K_c:
             self.draw_colliders = not self.draw_colliders
+        if event.type == pg.KEYDOWN and event.key == pg.K_l:
+            warrior = self.player_party.warrior
+            warrior.add_exp(5)
+            print(warrior.EXP)
+
 
 
 class LocalMapState(MapState): # TODO: Not fully implemented
