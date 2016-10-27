@@ -35,6 +35,8 @@ class PlayerParty(pg.sprite.Sprite):
         """
         self.warrior = Warrior()
         self.mage = Mage()
+        self.healer = Healer()
+        self.ranger = Ranger()
 
     def set_pos(self, x, y):
         self.rect.x = x
@@ -334,17 +336,17 @@ class Warrior(BaseMember):
     def __init__(self):
         super().__init__()
         self.INT = 10  # Intelligence, influences mana points
-        self.STR = 15  # Strength, influences physical damage
-        self.DEX = 10  # Dexterity, influences pure damage taken from physical attacks
+        self.STR = 10  # Strength, influences physical damage
+        self.DEX = 15  # Dexterity, influences pure damage taken from physical attacks
         self.DUR = 15  # Durability, influences maximal heath
         self.hp_multiplier = 2  # 2 HP points for each durability point
         self.mp_multiplier = 1  # Only 1 MP for each intelligence point
-        self.dmg_multiplier = 2  # 2 Attack points for each strength point
+        self.dmg_multiplier = 1  # 2 Attack points for each strength point
         self.defence_multiplier = 2  # 2 Attack points can be dodged for every dexterity point
         self.exp_multiplier = 10  # Determines how much experience must be achieved for level up
         self.INT_INC = 1
-        self.STR_INC = 2
-        self.DEX_INC = 1
+        self.STR_INC = 1
+        self.DEX_INC = 2
         self.DUR_INC = 2
         self.recalculate_stats()
 
@@ -358,7 +360,7 @@ class Mage(BaseMember):
         super().__init__()
         self.INT = 15
         self.STR = 10
-        self.DEX = 5
+        self.DEX = 10
         self.DUR = 10
         self.hp_multiplier = 1
         self.mp_multiplier = 2
@@ -372,3 +374,46 @@ class Mage(BaseMember):
         self.recalculate_stats()
 
 
+class Healer(BaseMember):
+    """
+    Class that represents Healer game class.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.INT = 15
+        self.STR = 5
+        self.DEX = 10
+        self.DUR = 5
+        self.hp_multiplier = 1
+        self.mp_multiplier = 2
+        self.dmg_multiplier = 1
+        self.defence_multiplier = 1
+        self.exp_multiplier = 12
+        self.INT_INC = 2
+        self.STR_INC = 1
+        self.DEX_INC = 1
+        self.DUR_INC = 2
+        self.recalculate_stats()
+
+
+class Ranger(BaseMember):
+    """
+    Class that represents Ranger game class
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.INT = 10
+        self.STR = 15
+        self.DEX = 10
+        self.DUR = 10
+        self.hp_multiplier = 2
+        self.mp_multiplier = 1
+        self.dmg_multiplier = 2
+        self.exp_multiplier = 10
+        self.INT_INC = 1
+        self.STR_INC = 2
+        self.DEX_INC = 2
+        self.DUR_INC = 1
+        self.recalculate_stats()
