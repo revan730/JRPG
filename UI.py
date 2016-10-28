@@ -31,6 +31,35 @@ class MenuItem:
         self.text = self.font.render(self.caption, True, pg.Color(self.color_inactive))
 
 
+class InfoItem:
+    """
+    Represents text item with caption and value,cannot be selected
+    """
+    def __init__(self, id, text, value, font, size, x, y):
+        self.id = id
+        self.caption = text
+        self.font_size = size
+        self.label_color = '#00E6E6'
+        self.value_color = 'white'
+        self.font = pg.font.Font(font, size)
+        self.x = x
+        self.y = y
+        self.set_value(value)
+
+    def set_value(self, value):
+        """
+        Set value for item
+        :param value: string value
+        :return:
+        """
+        self.value = str(value)
+        self.label_text = self.font.render(self.caption, True, pg.Color(self.label_color))
+        self.label_rect = self.label_text.get_rect(center=(self.x, self.y))
+        self.value_text = self.font.render(self.value, True, pg.Color(self.value_color))
+        self.value_rect = self.value_text.get_rect(center=(self.x + 100, self.y))
+
+
+
 class Window:
     """
     Basic window class for menu's,like pause,battle action,inventory
@@ -42,6 +71,7 @@ class Window:
         self.height = height
         self.bg = pg.Surface((width, height))
         self.bg.fill(pg.Color('#000060'))
+        self.menu_items = []
 
     def draw(self, surface):
         surface.blit(self.bg, (self.x, self.y))
@@ -64,7 +94,6 @@ class PauseWindow(Window):
         helper = StringsHelper("en")
         menu_strings = helper.get_strings("pause_menu")
         self.quit = False
-        self.menu_items = []
         self.add_items(menu_strings)
         self.cursor_pos = 0
         self.set_cursor()
@@ -74,6 +103,7 @@ class PauseWindow(Window):
         y =  self.y + 50
         """
         font_size = 36
+
         x = self.x + self.width / 2
         padding = self.height / 2 + self.y - font_size / 2 # calculate starting padding for first item to be near window center
         y = padding
@@ -116,3 +146,41 @@ class PauseWindow(Window):
     def set_cursor(self):
         self.menu_items[self.cursor_pos].set_active()
 
+
+class PartyWindow(Window):
+    """
+    Party window which shows information about party members stats
+    """
+    def __init__(self, x, y, width, height, party):
+        super().__init__(x, y, width, height)
+        self.party = party
+        self.quit = False
+        helper = StringsHelper("en")
+        info_items = helper.get_strings("party_menu_info")
+        self.set_portrait()
+        self.text_items = self.add_info_items(info_items)
+
+    def set_portrait(self):
+        self.portrait = self.party.warrior.portrait
+        rect = self.portrait[1]
+        rect.x = self.x +  self.width * 0.01
+        rect.y = self.y + self.height * 0.01
+
+    def add_info_items(self, info_items):
+        font_size = 18
+        text_items = []
+        x = self.x + self.width * 0.1
+        padding = self.y + self.height * 0.1 + self.portrait[1].height - font_size / 2 # calculate starting padding for first item to be near window center
+        y = padding
+        for i in sorted(info_items.keys()):
+            text_items.append(InfoItem(i, info_items[i], 0, None, font_size, x, y))
+            y += font_size
+
+        return text_items
+
+    def draw(self, surface):
+        super().draw(surface)
+        for i in self.text_items:
+            surface.blit(i.label_text, i.label_rect)
+            surface.blit(i.value_text, i.value_rect)
+        surface.blit(*self.portrait)

@@ -1,5 +1,5 @@
 import pygame as pg
-from ResourceHelpers import SettingsHelper as Settings, AnimationsHelper as Animations
+from ResourceHelpers import SettingsHelper as Settings, SpritesHelper as Sprites
 from Events import TeleportEvent
 import pyganim
 
@@ -90,7 +90,7 @@ class PlayerParty(pg.sprite.Sprite):
         Get all player animations paths
         :return: all player animations
         """
-        helper = Animations()
+        helper = Sprites()
         anim_up_f = helper.get_animation('warrior', 'up')
         anim_down_f = helper.get_animation('warrior', 'down')
         anim_left_f = helper.get_animation('warrior', 'left')
@@ -279,7 +279,7 @@ class BaseMember:
         self.MAX_LVL = 25
         self.spells = []  # List of spell objects which Warrior can cast
         self.inventory = "PLACEHOLDER - BaseInventory class"  # Warrior's inventory
-        self.EXP = 0  # Starting explerience
+        self.EXP = 0  # Starting experience
         self.UP_EXP = 0
         self.INT = 0
         self.STR = 0
@@ -349,6 +349,13 @@ class Warrior(BaseMember):
         self.DEX_INC = 2
         self.DUR_INC = 2
         self.recalculate_stats()
+        self.load_sprites()
+
+    def load_sprites(self):
+        helper = Sprites()
+        portrait_path = helper.get_sprite('warrior', 'portrait')
+        portrait_image = pg.image.load(portrait_path)
+        self.portrait = (portrait_image, portrait_image.get_rect())
 
 
 class Mage(BaseMember):

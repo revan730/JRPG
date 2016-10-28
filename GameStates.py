@@ -3,7 +3,7 @@
 import pygame as pg
 from Events import StateCallEvent, StateExitEvent, TeleportEvent
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper
-import UI as ui
+from UI import PauseWindow, PartyWindow, MenuItem
 from Player import PlayerParty, Camera, Teleport, Warrior
 from pytmx import load_pygame
 
@@ -141,7 +141,7 @@ class MainMenuState(GameState):
 
         self.menu_items = []
         for i in sorted(menu_strings.keys()):
-            self.menu_items.append(ui.MenuItem(i, menu_strings[i], None, 36, 'white', 'dodgerblue', x, y))
+            self.menu_items.append(MenuItem(i, menu_strings[i], None, 36, 'white', 'dodgerblue', x, y))
             y += 30
 
         self.cursor_pos = 0
@@ -208,6 +208,7 @@ class MapState(GameState):
         self.colliders = self.create_colliders()
         self.teleports = self.create_teleports()
         self.pause_menu = None
+        self.menu = None
 
     def update(self, dt):
         self.player_party.update(self.colliders, self.teleports)
@@ -216,6 +217,10 @@ class MapState(GameState):
             if self.pause_menu.quit == True:
                 self.pause_menu = None
                 self.on_resume()
+        if self.menu is not None:
+            if self.menu.quit == True:
+                self.menu = None
+                self.on_resume()
 
     def draw(self, surface):
         if self.bg:
@@ -223,9 +228,11 @@ class MapState(GameState):
 
     def get_event(self, event):
         super().get_event(event)
-        if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE: # Handle menu (de)activation
-            self.toggle_menu()
-        elif self.pause_menu is None: # Handle player control only if menu is not active
+        if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE: # Handle pause menu (de)activation
+            self.toggle_pause_menu()
+        elif self.pause_menu is None and event.type == pg.KEYDOWN and event.key == pg.K_p:
+            self.toggle_menu(PartyWindow)
+        elif self.pause_menu is None and self.menu is None: # Handle player control only if menu is not active
             if event.type == pg.KEYDOWN and event.key == pg.K_w:
                 self.player_party.up = True
             elif event.type == pg.KEYUP and event.key == pg.K_w:
@@ -242,19 +249,34 @@ class MapState(GameState):
                 self.player_party.right = True
             elif event.type == pg.KEYUP and event.key == pg.K_d:
                 self.player_party.right = False
-        elif self.pause_menu is not None and event.type == pg.KEYDOWN: # Let the menu handle key input events
+        elif self.pause_menu is not None and event.type == pg.KEYDOWN: # Let the pause menu handle key input events first (before other menus)
             self.pause_menu.update(event.key)
+        elif self.menu is not None and event.type == pg.KEYDOWN:
+            self.menu.update(event.key)
 
-    def toggle_menu(self):
+    def toggle_pause_menu(self):
         if self.pause_menu is None:
             self.on_pause()
             width = self.screen_width / 4
             height = self.screen_height / 4
             x = self.screen_width / 2 - width / 2
             y = self.screen_height / 2 - height / 2
-            self.pause_menu = ui.PauseWindow(x, y, width, height)
+            self.pause_menu = PauseWindow(x, y, width, height)
+            # self.pause_menu = ui.PartyWindow(x, y, width, height, self.player_party)
         else:
             self.pause_menu = None
+            self.on_resume()
+
+    def toggle_menu(self, menu):
+        if self.menu is None:
+            self.on_pause()
+            width = self.screen_width * 0.8
+            height = self.screen_height * 0.8
+            x = self.screen_width / 2 - width / 2
+            y = self.screen_height / 2 - height / 2
+            self.menu = menu(x, y, width, height, self.player_party)
+        else:
+            self.menu = None
             self.on_resume()
 
     def on_pause(self):
@@ -331,6 +353,8 @@ class WorldMapState(MapState):
             col_fill.fill(pg.Color('black'))
             for rect in self.colliders:
                 surface.blit(col_fill, self.camera.apply(rect))
+        if self.menu is not None:
+            self.menu.draw(surface)
         if self.pause_menu is not None:
             self.pause_menu.draw(surface)
             
@@ -372,6 +396,8 @@ class LocalMapState(MapState): # TODO: Not fully implemented
                 scaled_image = pg.transform.scale(image, (size, size))
                 surface.blit(scaled_image, self.camera.apply(pg.Rect(x * size, y * size, size, size)))
             surface.blit(self.player_party.image, self.camera.apply(self.player_party.rect))
+        if self.menu is not None:
+            self.menu.draw(surface)
         if self.pause_menu is not None:
             self.pause_menu.draw(surface)
 

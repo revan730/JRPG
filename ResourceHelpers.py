@@ -53,7 +53,7 @@ class SettingsHelper:
     def __del__(self):
         self.close()
 
-class AnimationsHelper:
+class SpritesHelper:
     def __init__(self):
         self.res_dir = "resources{}sprites".format(os.sep)
 
@@ -70,6 +70,17 @@ class AnimationsHelper:
             anim.append(('{res}{sep}{creat}{sep}{group}_{x}.gif').format(res=self.res_dir, sep=os.sep, creat=creature, group=group, x=x))
 
         return anim
+
+    def get_sprite(self, creature, type):
+        """
+        Get single sprite path
+        :param creature: name of creature
+        :param type: type of sprite eg. 'portrait'
+        :return: string with path to sprite
+        """
+        path = '{res}{sep}{creat}{sep}{type}.gif'.format(res=self.res_dir, sep=os.sep, creat=creature, type=type)
+        if os.path.exists(path):
+            return path
 
 class MapsHelper:
     @staticmethod
