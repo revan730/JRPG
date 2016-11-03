@@ -154,26 +154,45 @@ class PartyWindow(Window):
     def __init__(self, x, y, width, height, party):
         super().__init__(x, y, width, height)
         self.party = party
+        self.current_member = party[0]
+        self.index = 0
         self.quit = False
         helper = StringsHelper("en")
-        info_items = helper.get_strings("party_menu_info")
+        self.item_strings = helper.get_strings("party_menu_info")
+        self.set_character()
+
+    def update(self, key): # TODO: Refactor
+        if key == pg.K_d or key == pg.K_RIGHT:
+            self.index += 1
+            if self.index > len(self.party) - 1:
+                self.index = 0
+        elif key == pg.K_a or key == pg.K_LEFT:
+            self.index -= 1
+            if self.index < 0:
+                self.index = len(self.party)
+        self.current_member = self.party[self.index]
+        self.set_character()
+
+    def set_character(self):
         self.set_portrait()
-        self.text_items = self.add_info_items(info_items)
+        self.text_items = self.add_info_items()
+
 
     def set_portrait(self):
-        self.portrait = self.party.warrior.portrait
+        self.portrait = self.current_member.portrait
         rect = self.portrait[1]
         rect.x = self.x +  self.width * 0.01
         rect.y = self.y + self.height * 0.01
 
-    def add_info_items(self, info_items):
+    def add_info_items(self):
         font_size = 18
         text_items = []
+        atrs = self.current_member.get_attributes()
         x = self.x + self.width * 0.1
         padding = self.y + self.height * 0.1 + self.portrait[1].height - font_size / 2 # calculate starting padding for first item to be near window center
         y = padding
-        for i in sorted(info_items.keys()):
-            text_items.append(InfoItem(i, info_items[i], 0, None, font_size, x, y))
+        for i in sorted(self.item_strings.keys()):
+            text_items.append(InfoItem(i, self.item_strings[i], atrs[i[2:]], None, font_size, x, y))
             y += font_size
 
         return text_items

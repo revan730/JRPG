@@ -18,8 +18,8 @@ class PlayerParty(pg.sprite.Sprite):
         """
         pg.sprite.Sprite.__init__(self)
         self.image = pg.Surface((15, 18))
-        # self.image.fill(pg.Color('#f7646c'))
         self.rect = pg.Rect(x, y, 15, 18)
+        self.iter = 0
         self.xvel = 0
         self.yvel = 0
         self.up = self.down = self.left = self.right = False
@@ -195,6 +195,21 @@ class PlayerParty(pg.sprite.Sprite):
     def draw(self, surface):
         surface.blit(self.image, self.rect)
 
+    def __getitem__(self, item):
+        if item == 0:
+            return self.warrior
+        elif item == 1:
+            return self.mage
+        elif item == 2:
+            return self.healer
+        elif item == 3:
+            return self.ranger
+        else:
+            raise IndexError
+
+    def __len__(self):
+        return 4
+
 
 class Camera(object):
     """
@@ -294,6 +309,7 @@ class BaseMember:
         self.defence_multiplier = 0
         self.dmg_multiplier = 0
         self.exp_multiplier = 0
+        self._res_name = None
 
     def add_exp(self, exp):
         """
@@ -327,6 +343,27 @@ class BaseMember:
         self.DMG = self.STR * self.dmg_multiplier  # Starting physical damage
         self.MAX_DEF = self.DEX * self.defence_multiplier  # Starting defence (affects only physical damage)
 
+    def get_attributes(self):
+        atrs = {}
+        atrs['hp'] = self.HP
+        atrs['mp'] = self.MP
+        atrs['str'] = self.STR
+        atrs['int'] = self.INT
+        atrs['dex'] = self.DEX
+        atrs['dur'] = self.DUR
+        atrs['exp'] = self.EXP
+        atrs['lvl'] = self.LVL
+        atrs['dmg'] = self.DMG
+        atrs['def'] = self.MAX_DEF
+        return atrs
+
+    def load_sprites(self):
+        helper = Sprites()
+        portrait_path = helper.get_sprite(self._res_name, 'portrait')
+        portrait_image = pg.image.load(portrait_path)
+        self.portrait = (portrait_image, portrait_image.get_rect())
+
+
 
 class Warrior(BaseMember):
     """
@@ -348,14 +385,9 @@ class Warrior(BaseMember):
         self.STR_INC = 1
         self.DEX_INC = 2
         self.DUR_INC = 2
+        self._res_name = 'warrior'
         self.recalculate_stats()
         self.load_sprites()
-
-    def load_sprites(self):
-        helper = Sprites()
-        portrait_path = helper.get_sprite('warrior', 'portrait')
-        portrait_image = pg.image.load(portrait_path)
-        self.portrait = (portrait_image, portrait_image.get_rect())
 
 
 class Mage(BaseMember):
@@ -378,7 +410,9 @@ class Mage(BaseMember):
         self.STR_INC = 1
         self.DEX_INC = 1
         self.DUR_INC = 2
+        self._res_name = 'mage'
         self.recalculate_stats()
+        self.load_sprites()
 
 
 class Healer(BaseMember):
@@ -401,7 +435,9 @@ class Healer(BaseMember):
         self.STR_INC = 1
         self.DEX_INC = 1
         self.DUR_INC = 2
+        self._res_name = 'healer'
         self.recalculate_stats()
+        self.load_sprites()
 
 
 class Ranger(BaseMember):
@@ -423,4 +459,6 @@ class Ranger(BaseMember):
         self.STR_INC = 2
         self.DEX_INC = 2
         self.DUR_INC = 1
+        self._res_name = 'ranger'
         self.recalculate_stats()
+        self.load_sprites()
