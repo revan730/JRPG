@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 import pygame as pg
 from ResourceHelpers import StringsHelper
-from Events import StateExitEvent
 
 
 class MenuItem:
     """
     Represents text menu item,which can be active or inactive
     """
-    def __init__(self, id, text, font, size, color_inactive, color_active, x, y):
+    def __init__(self, identifier, text, font, size, color_inactive, color_active, x, y):
         """
         Initialize menu item
         :param text: text of item
@@ -16,7 +15,7 @@ class MenuItem:
         :param size: size
         :return:
         """
-        self.id = id
+        self.id = identifier
         self.caption = text
         self.color_active = color_active
         self.color_inactive = color_inactive
@@ -54,10 +53,9 @@ class InfoItem:
         """
         self.value = str(value)
         self.label_text = self.font.render(self.caption, True, pg.Color(self.label_color))
-        self.label_rect = self.label_text.get_rect(center=(self.x, self.y))
+        self.label_rect = self.label_text.get_rect(x=self.x, y=self.y)
         self.value_text = self.font.render(self.value, True, pg.Color(self.value_color))
-        self.value_rect = self.value_text.get_rect(center=(self.x + 100, self.y))
-
+        self.value_rect = self.value_text.get_rect(center=(self.x + 100, self.y + 5))
 
 
 class Window:
@@ -99,16 +97,14 @@ class PauseWindow(Window):
         self.set_cursor()
 
     def add_items(self, item_strings):
-        """x = self.x + self.width / 2
-        y =  self.y + 50
-        """
         font_size = 36
 
         x = self.x + self.width / 2
-        padding = self.height / 2 + self.y - font_size / 2 # calculate starting padding for first item to be near window center
+        padding = self.height / 2 + self.y - font_size / 2  # starting padding for first item to be near window center
         y = padding
         for i in sorted(item_strings.keys()):
-            self.menu_items.append(MenuItem(i, item_strings[i], None, font_size, 'white', 'green', x ,y))
+            item = MenuItem(i, item_strings[i], None, font_size, 'white', 'green', x, y)
+            self.menu_items.append(item)
             y += font_size
 
     def draw(self, surface):
@@ -161,7 +157,7 @@ class PartyWindow(Window):
         self.item_strings = helper.get_strings("party_menu_info")
         self.set_character()
 
-    def update(self, key): # TODO: Refactor
+    def update(self, key):  # TODO: Refactor
         if key == pg.K_d or key == pg.K_RIGHT:
             self.index += 1
             if self.index > len(self.party) - 1:
@@ -169,7 +165,7 @@ class PartyWindow(Window):
         elif key == pg.K_a or key == pg.K_LEFT:
             self.index -= 1
             if self.index < 0:
-                self.index = len(self.party)
+                self.index = len(self.party) - 1
         self.current_member = self.party[self.index]
         self.set_character()
 
@@ -177,19 +173,20 @@ class PartyWindow(Window):
         self.set_portrait()
         self.text_items = self.add_info_items()
 
-
     def set_portrait(self):
         self.portrait = self.current_member.portrait
         rect = self.portrait[1]
-        rect.x = self.x +  self.width * 0.01
+        rect.x = self.x + self.width * 0.01
         rect.y = self.y + self.height * 0.01
+        self.name_lbl = InfoItem(0, self.current_member.name, None, None, 24, rect.x + rect.width + 10, rect.y + 10)
+        self.class_lbl = InfoItem(0, str(self.current_member), None, None, 24, rect.x + rect.width + 10, rect.y + 25)
 
-    def add_info_items(self):
+    def add_info_items(self): # TODO: Font size must be selected to match screen resolution
         font_size = 18
         text_items = []
         atrs = self.current_member.get_attributes()
-        x = self.x + self.width * 0.1
-        padding = self.y + self.height * 0.1 + self.portrait[1].height - font_size / 2 # calculate starting padding for first item to be near window center
+        x = self.x + self.width * 0.01
+        padding = self.y + self.height * 0.1 + self.portrait[1].height - font_size / 2  # starting padding for first item to be near window center
         y = padding
         for i in sorted(self.item_strings.keys()):
             text_items.append(InfoItem(i, self.item_strings[i], atrs[i[2:]], None, font_size, x, y))
@@ -203,3 +200,5 @@ class PartyWindow(Window):
             surface.blit(i.label_text, i.label_rect)
             surface.blit(i.value_text, i.value_rect)
         surface.blit(*self.portrait)
+        surface.blit(self.name_lbl.label_text, self.name_lbl.label_rect)
+        surface.blit(self.class_lbl.label_text, self.class_lbl.label_rect)

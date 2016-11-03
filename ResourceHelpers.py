@@ -29,7 +29,7 @@ class SettingsHelper:
 
     def load(self):
         if os.path.exists(self.settings_file):
-            with open(self.settings_file,'rb') as f:
+            with open(self.settings_file, 'rb') as f:
                 try:
                     self.settings = pic.load(f)
                 except pic.UnpicklingError:
@@ -48,10 +48,11 @@ class SettingsHelper:
 
     def close(self):
         with open(self.settings_file, 'wb') as f:
-                pic._dump(self.settings, f)
+                pic.dump(self.settings, f)
 
     def __del__(self):
         self.close()
+
 
 class SpritesHelper:
     def __init__(self):
@@ -65,25 +66,27 @@ class SpritesHelper:
         :return: list of tuple of string
         """
         anim = []
+        path = '{res}{sep}{creat}{sep}{group}_{x}.gif'
 
         for x in range(1, 3):
-            anim.append(('{res}{sep}{creat}{sep}{group}_{x}.gif').format(res=self.res_dir, sep=os.sep, creat=creature, group=group, x=x))
+            anim.append(path.format(res=self.res_dir, sep=os.sep, creat=creature, group=group, x=x))
 
         return anim
 
-    def get_sprite(self, creature, type):
+    def get_sprite(self, creature, group):
         """
         Get single sprite path
         :param creature: name of creature
-        :param type: type of sprite eg. 'portrait'
+        :param group: type of sprite eg. 'portrait'
         :return: string with path to sprite
         """
-        path = '{res}{sep}{creat}{sep}{type}.gif'.format(res=self.res_dir, sep=os.sep, creat=creature, type=type)
+        path = '{res}{sep}{creat}{sep}{type}.gif'.format(res=self.res_dir, sep=os.sep, creat=creature, type=group)
         if os.path.exists(path):
             return path
+
 
 class MapsHelper:
     @staticmethod
     def get_map(map_name):
         res_dir = 'resources{}maps'.format(os.sep)
-        return '{res}{sep}{name}.tmx'.format(res=res_dir, sep= os.sep, name=map_name)
+        return '{res}{sep}{name}.tmx'.format(res=res_dir, sep=os.sep, name=map_name)

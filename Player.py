@@ -344,17 +344,8 @@ class BaseMember:
         self.MAX_DEF = self.DEX * self.defence_multiplier  # Starting defence (affects only physical damage)
 
     def get_attributes(self):
-        atrs = {}
-        atrs['hp'] = self.HP
-        atrs['mp'] = self.MP
-        atrs['str'] = self.STR
-        atrs['int'] = self.INT
-        atrs['dex'] = self.DEX
-        atrs['dur'] = self.DUR
-        atrs['exp'] = self.EXP
-        atrs['lvl'] = self.LVL
-        atrs['dmg'] = self.DMG
-        atrs['def'] = self.MAX_DEF
+        atrs = {'hp': self.HP, 'mp': self.MP, 'str': self.STR, 'int': self.INT, 'dex': self.DEX, 'dur': self.DUR,
+                'exp': self.EXP, 'lvl': self.LVL, 'dmg': self.DMG, 'def': self.MAX_DEF}
         return atrs
 
     def load_sprites(self):
@@ -364,7 +355,6 @@ class BaseMember:
         self.portrait = (portrait_image, portrait_image.get_rect())
 
 
-
 class Warrior(BaseMember):
     """
     Represents warrior game class, with it's stats,sprites etc.
@@ -372,6 +362,7 @@ class Warrior(BaseMember):
 
     def __init__(self):
         super().__init__()
+        self.name = 'Sid'
         self.INT = 10  # Intelligence, influences mana points
         self.STR = 10  # Strength, influences physical damage
         self.DEX = 15  # Dexterity, influences pure damage taken from physical attacks
@@ -389,6 +380,9 @@ class Warrior(BaseMember):
         self.recalculate_stats()
         self.load_sprites()
 
+    def __str__(self):
+        return 'Warrior'
+
 
 class Mage(BaseMember):
     """
@@ -397,6 +391,7 @@ class Mage(BaseMember):
 
     def __init__(self):
         super().__init__()
+        self.name = 'Karos'
         self.INT = 15
         self.STR = 10
         self.DEX = 10
@@ -414,6 +409,9 @@ class Mage(BaseMember):
         self.recalculate_stats()
         self.load_sprites()
 
+    def __str__(self):
+        return 'Mage'
+
 
 class Healer(BaseMember):
     """
@@ -422,6 +420,7 @@ class Healer(BaseMember):
 
     def __init__(self):
         super().__init__()
+        self.name = 'Rilay'
         self.INT = 15
         self.STR = 5
         self.DEX = 10
@@ -439,6 +438,9 @@ class Healer(BaseMember):
         self.recalculate_stats()
         self.load_sprites()
 
+    def __str__(self):
+        return 'Healer'
+
 
 class Ranger(BaseMember):
     """
@@ -447,6 +449,7 @@ class Ranger(BaseMember):
 
     def __init__(self):
         super().__init__()
+        self.name = 'Jaden'
         self.INT = 10
         self.STR = 15
         self.DEX = 10
@@ -462,3 +465,6 @@ class Ranger(BaseMember):
         self._res_name = 'ranger'
         self.recalculate_stats()
         self.load_sprites()
+
+    def __str__(self):
+        return 'Ranger'

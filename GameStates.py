@@ -4,7 +4,7 @@ import pygame as pg
 from Events import StateCallEvent, StateExitEvent, TeleportEvent
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper
 from UI import PauseWindow, PartyWindow, MenuItem
-from Player import PlayerParty, Camera, Teleport, Warrior
+from Player import PlayerParty, Camera, Teleport
 from pytmx import load_pygame
 
 
@@ -203,7 +203,7 @@ class MapState(GameState):
             self.player_party = PlayerParty(360, 360)
         self.camera = Camera(Camera.camera_configure_world, self.screen_width, self.screen_width)
         self.tile_size = self.tiled_map.tilewidth
-        self.scale_factor = 2 # Tiles are 16x16,so we must draw them 2 times larger
+        self.scale_factor = 2  # Tiles are 16x16,so we must draw them 2 times larger
         self.scaled_size = self.tile_size * self.scale_factor
         self.colliders = self.create_colliders()
         self.teleports = self.create_teleports()
@@ -214,11 +214,11 @@ class MapState(GameState):
         self.player_party.update(self.colliders, self.teleports)
         self.camera.update(self.player_party)
         if self.pause_menu is not None:
-            if self.pause_menu.quit == True:
+            if self.pause_menu.quit:
                 self.pause_menu = None
                 self.on_resume()
         if self.menu is not None:
-            if self.menu.quit == True:
+            if self.menu.quit:
                 self.menu = None
                 self.on_resume()
 
@@ -228,11 +228,11 @@ class MapState(GameState):
 
     def get_event(self, event):
         super().get_event(event)
-        if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE: # Handle pause menu (de)activation
+        if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:  # Handle pause menu (de)activation
             self.toggle_pause_menu()
         elif self.pause_menu is None and event.type == pg.KEYDOWN and event.key == pg.K_p:
             self.toggle_menu(PartyWindow)
-        elif self.pause_menu is None and self.menu is None: # Handle player control only if menu is not active
+        elif self.pause_menu is None and self.menu is None:  # Handle player control only if menu is not active
             if event.type == pg.KEYDOWN and event.key == pg.K_w:
                 self.player_party.up = True
             elif event.type == pg.KEYUP and event.key == pg.K_w:
@@ -271,7 +271,7 @@ class MapState(GameState):
         if self.menu is None:
             self.on_pause()
             width = self.screen_width * 0.8
-            height = self.screen_height * 0.8
+            height = self.screen_height * 0.5
             x = self.screen_width / 2 - width / 2
             y = self.screen_height / 2 - height / 2
             self.menu = menu(x, y, width, height, self.player_party)
@@ -309,10 +309,9 @@ class MapState(GameState):
         """
         size = self.scaled_size
         teleports = []
-        tile_width = self.tiled_map.tilewidth
         tp_index = int(self.tiled_map.properties['tp_layer_index'])
         for x, y, image in self.tiled_map.get_layer_by_name('teleports').tiles():
-            rect = pg.Rect(x * size, y * size, size / 2, size / 2) # player collides with teleport too early if size is not halfed
+            rect = pg.Rect(x * size, y * size, size / 2, size / 2)  # collision occurs too early if size is not halfed
             p = self.tiled_map.get_tile_properties(x, y, tp_index)
             pos_x = int(p['pos_x'])
             pos_y = int(p['pos_y'])
@@ -322,6 +321,7 @@ class MapState(GameState):
             teleports.append(tp)
 
         return teleports
+
 
 class WorldMapState(MapState):
     def __init__(self, persistent):
@@ -370,7 +370,7 @@ class WorldMapState(MapState):
         super().get_event(event)
         if event.type == TeleportEvent and event.teleport.world == 'localworld':
             tp = event.teleport
-            args_dict = {'player_party': self.player_party, 'pos_x': tp.pos_x , 'pos_y': tp.pos_y, 'map_file': tp.map_f}
+            args_dict = {'player_party': self.player_party, 'pos_x': tp.pos_x, 'pos_y': tp.pos_y, 'map_file': tp.map_f}
             self.call_state(LocalMapState, args_dict)
         if event.type == pg.KEYDOWN and event.key == pg.K_c:
             self.draw_colliders = not self.draw_colliders
@@ -380,8 +380,7 @@ class WorldMapState(MapState):
             print(warrior.EXP)
 
 
-
-class LocalMapState(MapState): # TODO: Not fully implemented
+class LocalMapState(MapState):  # TODO: Not fully implemented
     def __init__(self, persistent):
         super().__init__(persistent)
         self.player_party.set_pos(persistent['pos_x'], persistent['pos_y'])
@@ -411,4 +410,3 @@ class LocalMapState(MapState): # TODO: Not fully implemented
             tp = event.teleport
             self.tiled_map = load_pygame(tp.map_f)
             self.player_party.set_pos(tp.pos_x, tp.pos_y)
-

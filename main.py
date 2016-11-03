@@ -7,10 +7,12 @@ from ResourceHelpers import SettingsHelper as Settings
 import pygame as pg
 
 pg.init()
-DISPLAY = (860, 640)
+h = 768
+w = 1366
+DISPLAY = (w, h)
 settings = Settings()
-settings.set('screen_width', 860)
-settings.set('screen_height', 640)
+settings.set('screen_width', w)
+settings.set('screen_height', h)
 screen = pg.display.set_mode(DISPLAY)
 pg.display.set_caption('Sephiroth engine')
 g = Game(screen, MainMenuState)
