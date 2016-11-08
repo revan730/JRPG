@@ -26,6 +26,7 @@ class PlayerParty(pg.sprite.Sprite):
         self.set_animations()
         self.current_anim = None
         self.paused = False
+        self.inventory = [] # content of common inventory
         self.create_party()
 
     def create_party(self):
@@ -192,6 +193,15 @@ class PlayerParty(pg.sprite.Sprite):
                 tp_event = pg.event.Event(TeleportEvent, event_args)
                 pg.event.post(tp_event)
 
+    def add_items(self, *items):
+        """
+        Add items to inventory
+        :param items: items to add
+        :return:
+        """
+        items = list(items)
+        self.inventory.extend(items)
+
     def draw(self, surface):
         surface.blit(self.image, self.rect)
 
@@ -293,7 +303,8 @@ class BaseMember:
         self.LVL = 1  # Starting level is 1
         self.MAX_LVL = 25
         self.spells = []  # List of spell objects which Warrior can cast
-        self.inventory = "PLACEHOLDER - BaseInventory class"  # Warrior's inventory
+        self.armor = Armor('Coat', 2, 10)  # Armor item
+        self.weapon = Weapon('Knife', 2, 8) # Weapon item
         self.EXP = 0  # Starting experience
         self.UP_EXP = 0
         self.INT = 0
@@ -348,12 +359,96 @@ class BaseMember:
                 'exp': self.EXP, 'lvl': self.LVL, 'dmg': self.DMG, 'def': self.MAX_DEF}
         return atrs
 
+    def get_worn_items(self):
+        items = {'wp': self.weapon, 'arm': self.armor}
+        return items
+
     def load_sprites(self):
         helper = Sprites()
         portrait_path = helper.get_sprite(self._res_name, 'portrait')
         portrait_image = pg.image.load(portrait_path)
         self.portrait = (portrait_image, portrait_image.get_rect())
 
+
+class BaseItem:
+    """
+    Represents basic inventory item class
+    """
+
+    def __init__(self, name, cost):
+        self.name = name
+        self.cost = int(cost)
+
+class Weapon(BaseItem):
+    """
+    Represents weapon item class for inventory
+    """
+
+    def __init__(self, name, dmg, cost):
+        """
+
+        :param name: string - weapon name
+        :param dmg: int - weapon damage (will be added to owner's physical damage)
+        :param cost: int - weapon cost
+        :return:
+        """
+        super().__init__(name, cost)
+        self.dmg = dmg
+
+    def __str__(self):
+        return '{} (+{})'.format(self.name, self.dmg)
+
+
+class Armor(BaseItem):
+    """
+    Represents armor item class for inventory
+    """
+
+    def __init__(self, name, defence, cost):
+        super().__init__(name, cost)
+        self.defence = defence
+
+    def __str__(self):
+        return '{} (+{})'.format(self.name, self.defence)
+
+
+class Usable(BaseItem):
+    """
+    Represents usable item like potion, which applies some effect to user
+    """
+
+    def __init__(self, name, cost):
+        super().__init__(name, cost)
+
+    def apply_effect(self, target):
+        """
+        apply item effect on it's target
+        :param target: player or enemy party member
+        :return:
+        """
+        pass
+
+
+class Spell:
+    """
+    Represents spell, which can be applied to characters
+    """
+
+    def __init__(self, name, cost, mp_cost):
+        self.name = name
+        self.cost = int(cost)
+        self.mp = int(mp_cost)
+
+    def apply(self, target):
+        """
+        apply spell on it's target
+        :param target: player or enemy party member
+        :return:
+        """
+        pass
+
+    def __str__(self):
+        return '{} ({} MP)'.format(self.name, self.mp)
 
 class Warrior(BaseMember):
     """
@@ -437,6 +532,7 @@ class Healer(BaseMember):
         self._res_name = 'healer'
         self.recalculate_stats()
         self.load_sprites()
+        self.spells.append(Spell('Heal', 5, 5))
 
     def __str__(self):
         return 'Healer'

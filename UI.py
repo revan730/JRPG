@@ -30,12 +30,23 @@ class MenuItem:
         self.text = self.font.render(self.caption, True, pg.Color(self.color_inactive))
 
 
+class Label:
+    """
+    Represents text label
+    """
+    def __init__(self, text, color, font, size, x, y):
+        self.caption = text
+        self.color = color
+        self.font = pg.font.Font(font, size)
+        self.text = self.font.render(self.caption, True, pg.Color(self.color))
+        self.rect = self.text.get_rect(x=x, y=y)
+
+
 class InfoItem:
     """
     Represents text item with caption and value,cannot be selected
     """
-    def __init__(self, id, text, value, font, size, x, y):
-        self.id = id
+    def __init__(self, text, value, font, size, x, y):
         self.caption = text
         self.font_size = size
         self.label_color = '#00E6E6'
@@ -154,7 +165,10 @@ class PartyWindow(Window):
         self.index = 0
         self.quit = False
         helper = StringsHelper("en")
-        self.item_strings = helper.get_strings("party_menu_info")
+        self.first_column_strings = helper.get_strings("party_menu_info_first")
+        self.second_column_strings = helper.get_strings("party_menu_info_second")
+        self.spell_string = helper.get_string("party_menu_info_others", "sp")
+        self.spell_items = []
         self.set_character()
 
     def update(self, key):  # TODO: Refactor
@@ -178,27 +192,52 @@ class PartyWindow(Window):
         rect = self.portrait[1]
         rect.x = self.x + self.width * 0.01
         rect.y = self.y + self.height * 0.01
-        self.name_lbl = InfoItem(0, self.current_member.name, None, None, 24, rect.x + rect.width + 10, rect.y + 10)
-        self.class_lbl = InfoItem(0, str(self.current_member), None, None, 24, rect.x + rect.width + 10, rect.y + 25)
+        self.name_lbl = InfoItem(self.current_member.name, None, None, 24, rect.x + rect.width + 10, rect.y + 10)
+        self.class_lbl = InfoItem(str(self.current_member), None, None, 24, rect.x + rect.width + 10, rect.y + 25)
 
     def add_info_items(self): # TODO: Font size must be selected to match screen resolution
         font_size = 18
         text_items = []
         atrs = self.current_member.get_attributes()
+        worn_items = self.current_member.get_worn_items()
         x = self.x + self.width * 0.01
-        padding = self.y + self.height * 0.1 + self.portrait[1].height - font_size / 2  # starting padding for first item to be near window center
-        y = padding
-        for i in sorted(self.item_strings.keys()):
-            text_items.append(InfoItem(i, self.item_strings[i], atrs[i[2:]], None, font_size, x, y))
-            y += font_size
+        padding_first = self.y + self.height * 0.1 + self.portrait[1].height - font_size / 2  # starting padding for first item to be near window center
+        y = padding_first
+        for i in sorted(self.first_column_strings.keys()):
+            text_items.append(InfoItem(self.first_column_strings[i], atrs[i[2:]], None, font_size, x, y))
+            # y += font_size
+            y += self.height * 0.06
+
+        y = padding_first
+        x = text_items[-1].value_rect.x + self.width * 0.05
+        for i in sorted(self.second_column_strings.keys()):
+            item = worn_items[i[2:]]
+            value = str(item)
+            text_items.append(InfoItem(self.second_column_strings[i], value, None, font_size, x, y))
+            y += self.height * 0.06
+
+        self.add_spells(text_items[-1].value_rect.x, padding_first, font_size)
 
         return text_items
 
-    def draw(self, surface):
+    def add_spells(self, left_x, padding_first, font_size):
+        self.spell_items.clear()
+        x = left_x + self.width * 0.20
+        y = padding_first - self.height * 0.06
+        self.spell_text = Label(self.spell_string, '#00E6E6', None, 24, x, y)
+        for i in self.current_member.spells:
+            y += self.height * 0.06
+            lbl = Label(str(i), 'white', None, font_size, x, y)
+            self.spell_items.append(lbl)
+
+    def draw(self, surface): # TODO: Refactor
         super().draw(surface)
         for i in self.text_items:
             surface.blit(i.label_text, i.label_rect)
             surface.blit(i.value_text, i.value_rect)
+        for i in self.spell_items:
+            surface.blit(i.text, i.rect)
         surface.blit(*self.portrait)
         surface.blit(self.name_lbl.label_text, self.name_lbl.label_rect)
         surface.blit(self.class_lbl.label_text, self.class_lbl.label_rect)
+        surface.blit(self.spell_text.text, self.spell_text.rect)

@@ -270,7 +270,7 @@ class MapState(GameState):
     def toggle_menu(self, menu):
         if self.menu is None:
             self.on_pause()
-            width = self.screen_width * 0.8
+            width = self.screen_width * 0.55
             height = self.screen_height * 0.5
             x = self.screen_width / 2 - width / 2
             y = self.screen_height / 2 - height / 2

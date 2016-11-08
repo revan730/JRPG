@@ -20,6 +20,18 @@ class StringsHelper:
 
         return strings
 
+    def get_string(self, file_name, key):
+        """
+        Get single
+        :param file_name: name of strings file (without locale code)
+        :param key: string key
+        :return: string
+        """
+
+        dict = self.get_strings(file_name)
+
+        return dict[key]
+
 
 class SettingsHelper:
     def __init__(self):

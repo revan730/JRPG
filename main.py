@@ -7,8 +7,8 @@ from ResourceHelpers import SettingsHelper as Settings
 import pygame as pg
 
 pg.init()
-h = 768
-w = 1366
+h = 600
+w = 800
 DISPLAY = (w, h)
 settings = Settings()
 settings.set('screen_width', w)
