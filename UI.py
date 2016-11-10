@@ -85,6 +85,32 @@ class InfoItem:
         self.value_rect = self.value_text.get_rect(center=(self.x + 100, self.y + 5))
 
 
+class Menu:
+    """
+    Basic class for any ui window with menu's
+    """
+
+    def __init__(self):
+        self.index = 0
+
+    def next_item(self):
+        if self.index + 1 < len(self.menu_items):
+            self.menu_items[self.index].set_inactive()
+            self.index += 1
+            self.set_cursor()
+
+    def prev_item(self):
+        if self.index > 0:
+            self.menu_items[self.index].set_inactive()
+            self.index -= 1
+            self.set_cursor()
+
+    def choose_item(self):
+        pass
+
+    def set_cursor(self):
+        self.menu_items[self.index].set_active()
+
 class Window:
     """
     Basic window class for menu's,like pause,battle action,inventory
@@ -129,7 +155,7 @@ class MessageWindow(Window):
             self.quit = True
 
 
-class SelectCharacterWindow(Window):
+class SelectCharacterWindow(Window, Menu):
     """
     Dialog window which prints all player party characters to select.Stores selection in 'selected'
     field
@@ -137,9 +163,9 @@ class SelectCharacterWindow(Window):
 
     def __init__(self, x, y, width, height, party):
         super().__init__(x ,y, width, height)
+        Menu.__init__(self) # non-cooperative style of multiple inheritance
         self.selected = None
         item_strings = []
-        self.index = 0
         self.party = party
         for i in party:
             item_strings.append(str(i))
@@ -172,35 +198,21 @@ class SelectCharacterWindow(Window):
         elif key == pg.K_RETURN or key == pg.K_f:
             self.choose_item()
 
-    def next_item(self):
-        if self.index + 1 < len(self.menu_items):
-            self.menu_items[self.index].set_inactive()
-            self.index += 1
-            self.set_cursor()
-
-    def prev_item(self):
-        if self.index > 0:
-            self.menu_items[self.index].set_inactive()
-            self.index -= 1
-            self.set_cursor()
-
     def choose_item(self):
         self.selected = self.party[self.index]
         self.quit = True
 
-    def set_cursor(self):
-        self.menu_items[self.index].set_active()
 
-class PauseWindow(Window):
+class PauseWindow(Window, Menu):
     """
     Pause window which is called by game state when it's paused
     """
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
+        Menu.__init__(self)
         helper = StringsHelper("en")
         menu_strings = helper.get_strings("pause_menu")
         self.add_items(menu_strings)
-        self.cursor_pos = 0
         self.set_cursor()
 
     def add_items(self, item_strings):
@@ -227,38 +239,23 @@ class PauseWindow(Window):
         elif key == pg.K_RETURN or key == pg.K_f:
             self.choose_item()
 
-    def next_item(self):
-        if self.cursor_pos + 1 < len(self.menu_items):
-            self.menu_items[self.cursor_pos].set_inactive()
-            self.cursor_pos += 1
-            self.set_cursor()
-
-    def prev_item(self):
-        if self.cursor_pos > 0:
-            self.menu_items[self.cursor_pos].set_inactive()
-            self.cursor_pos -= 1
-            self.set_cursor()
-
     def choose_item(self):
-        if self.cursor_pos == 0:
+        if self.index == 0:
             self.quit = True
-        elif self.cursor_pos == 1:
+        elif self.index == 1:
             quit_event = pg.event.Event(pg.QUIT)
             pg.event.post(quit_event)
 
-    def set_cursor(self):
-        self.menu_items[self.cursor_pos].set_active()
 
-
-class PartyWindow(Window):
+class PartyWindow(Window, Menu):
     """
     Party window which shows information about party members stats
     """
     def __init__(self, x, y, width, height, party):
         super().__init__(x, y, width, height)
+        Menu.__init__(self)
         self.party = party
         self.current_member = party[0]
-        self.index = 0
         helper = StringsHelper("en")
         self.first_column_strings = helper.get_strings("party_menu_info_first")
         self.second_column_strings = helper.get_strings("party_menu_info_second")
@@ -267,19 +264,31 @@ class PartyWindow(Window):
         self.drawables = []
         self.set_character()
 
-    def update(self, key):  # TODO: Refactor
+    def update(self, key):
         if key == pg.K_d or key == pg.K_RIGHT:
-            self.index += 1
-            if self.index > len(self.party) - 1:
-                self.index = 0
+            self.next_item()
         elif key == pg.K_a or key == pg.K_LEFT:
-            self.index -= 1
-            if self.index < 0:
-                self.index = len(self.party) - 1
-        self.current_member = self.party[self.index]
+            self.prev_item()
         self.set_character()
 
+    def prev_item(self):
+        self.index -= 1
+        if self.index < 0:
+            self.index = len(self.party) - 1
+
+    def next_item(self):
+        self.index += 1
+        if self.index > len(self.party) - 1:
+            self.index = 0
+
+    def choose_item(self):
+        pass
+
+    def set_cursor(self):
+        pass
+
     def set_character(self):
+        self.current_member = self.party[self.index]
         self.drawables.clear()
         self.set_portrait()
         self.add_info_items()
@@ -333,15 +342,15 @@ class PartyWindow(Window):
                 surface.blit(i.image, i.rect)
 
 
-class InventoryWindow(Window):
+class InventoryWindow(Window, Menu):
     """
     Inventory window which shows content of party inventory,allows interaction with it
     """
 
     def __init__(self, x, y, width, height, party):
         super().__init__(x, y, width, height)
+        Menu.__init__(self)
         self.party = party
-        self.index = 0
         self.drawables = []
         self.description = None
         self.menu_items = []
@@ -361,7 +370,6 @@ class InventoryWindow(Window):
             self.drawables.append(item)
             self.menu_items.append(item)
             y+= self.height * 0.06
-
 
     def draw(self, surface):
         super().draw(surface)
@@ -390,18 +398,6 @@ class InventoryWindow(Window):
         self.menu_items[self.index].set_active()
         text = self.party.inventory[self.index].info
         self.description = Label(text, 'white', None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
-
-    def next_item(self):
-        if self.index + 1 < len(self.menu_items):
-            self.menu_items[self.index].set_inactive()
-            self.index += 1
-            self.set_cursor()
-
-    def prev_item(self):
-        if self.index > 0:
-            self.menu_items[self.index].set_inactive()
-            self.index -= 1
-            self.set_cursor()
 
     def create_message(self, msg):
         self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
