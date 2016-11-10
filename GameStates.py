@@ -3,7 +3,7 @@
 import pygame as pg
 from Events import StateCallEvent, StateExitEvent, TeleportEvent
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper
-from UI import PauseWindow, PartyWindow, MenuItem
+from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow
 from Player import PlayerParty, Camera, Teleport
 from pytmx import load_pygame
 
@@ -150,7 +150,7 @@ class MainMenuState(GameState):
     def draw(self, surface):
         surface.blit(self.bg, (0, 0))
         for i in self.menu_items:
-            surface.blit(i.text, i.rect)
+            surface.blit(i.image, i.rect)
 
     def get_event(self, event):
         super().get_event(event)
@@ -232,6 +232,8 @@ class MapState(GameState):
             self.toggle_pause_menu()
         elif self.pause_menu is None and event.type == pg.KEYDOWN and event.key == pg.K_p:
             self.toggle_menu(PartyWindow)
+        elif self.pause_menu is None and event.type == pg.KEYDOWN and event.key == pg.K_i:
+            self.toggle_menu(InventoryWindow)
         elif self.pause_menu is None and self.menu is None:  # Handle player control only if menu is not active
             if event.type == pg.KEYDOWN and event.key == pg.K_w:
                 self.player_party.up = True

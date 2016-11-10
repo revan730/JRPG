@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 import pygame as pg
 from ResourceHelpers import StringsHelper
+from Player import Usable, Armor, Weapon
 
+LBL_BLUE = '#00E6E6'
 
 class MenuItem:
     """
     Represents text menu item,which can be active or inactive
     """
-    def __init__(self, identifier, text, font, size, color_inactive, color_active, x, y):
+    def __init__(self, identifier, text, font, size, color_inactive, color_active, x, y, centered=True):
         """
         Initialize menu item
         :param text: text of item
@@ -21,26 +23,40 @@ class MenuItem:
         self.color_inactive = color_inactive
         self.font = pg.font.Font(font, size)
         self.set_inactive()
-        self.rect = self.text.get_rect(center=(x, y))
+        if centered:
+            self.rect = self.image.get_rect(center=(x, y))
+        else:
+            self.rect = self.image.get_rect(x=x, y=y)
 
     def set_active(self):
-        self.text = self.font.render(self.caption, True, pg.Color(self.color_active))
+        self.image = self.font.render(self.caption, True, pg.Color(self.color_active))
 
     def set_inactive(self):
-        self.text = self.font.render(self.caption, True, pg.Color(self.color_inactive))
+        self.image = self.font.render(self.caption, True, pg.Color(self.color_inactive))
 
 
 class Label:
     """
     Represents text label
     """
-    def __init__(self, text, color, font, size, x, y):
-        self.caption = text
+    def __init__(self, text, color, font_file, size, x, y):
         self.color = color
-        self.font = pg.font.Font(font, size)
-        self.text = self.font.render(self.caption, True, pg.Color(self.color))
-        self.rect = self.text.get_rect(x=x, y=y)
+        self.font_file = font_file
+        self.size = size
+        self.x = x
+        self.y = y
+        self.set(text)
 
+
+    def set(self, text):
+        """
+        Sets label text
+        :param text: text string
+        :return:
+        """
+        self.font = pg.font.Font(self.font_file, self.size)
+        self.image = self.font.render(text, True, pg.Color(self.color))
+        self.rect = self.image.get_rect(x=self.x, y=self.y)
 
 class InfoItem:
     """
@@ -49,7 +65,7 @@ class InfoItem:
     def __init__(self, text, value, font, size, x, y):
         self.caption = text
         self.font_size = size
-        self.label_color = '#00E6E6'
+        self.label_color = LBL_BLUE
         self.value_color = 'white'
         self.font = pg.font.Font(font, size)
         self.x = x
@@ -78,6 +94,7 @@ class Window:
         self.y = y
         self.width = width
         self.height = height
+        self.quit = False
         self.bg = pg.Surface((width, height))
         self.bg.fill(pg.Color('#000060'))
         self.menu_items = []
@@ -94,6 +111,86 @@ class Window:
         pass
 
 
+class MessageWindow(Window):
+    """
+    Window which shows message text
+    """
+
+    def __init__(self, x, y, width, height, message):
+        super().__init__(x, y, width, height)
+        self.lbl = Label(message, 'white', None, 24, self.x + self.width / 2, self.y + self.height / 2)
+
+    def draw(self, surface):
+        super().draw(surface)
+        surface.blit(self.lbl.image, self.lbl.rect)
+
+    def update(self, key):
+        if key == pg.K_RETURN or key == pg.K_f:
+            self.quit = True
+
+
+class SelectCharacterWindow(Window):
+    """
+    Dialog window which prints all player party characters to select.Stores selection in 'selected'
+    field
+    """
+
+    def __init__(self, x, y, width, height, party):
+        super().__init__(x ,y, width, height)
+        self.selected = None
+        item_strings = []
+        self.index = 0
+        self.party = party
+        for i in party:
+            item_strings.append(str(i))
+        self.add_items(item_strings)
+        self.set_cursor()
+
+    def add_items(self, item_strings):
+        font_size = 36
+
+        x = self.x + self.width / 2
+        padding = self.height / 2 + self.y - font_size / 2  # starting padding for first item to be near window center
+        y = padding
+        ind = 0
+        for i in item_strings:
+            item = MenuItem(ind, i, None, font_size, 'white', 'green', x, y)
+            self.menu_items.append(item)
+            y += font_size
+            ind += 1
+
+    def draw(self, surface):
+        super().draw(surface)
+        for i in self.menu_items:
+            surface.blit(i.image, i.rect)
+
+    def update(self, key):
+        if key == pg.K_w or key == pg.K_UP:
+            self.prev_item()
+        elif key == pg.K_s or key == pg.K_DOWN:
+            self.next_item()
+        elif key == pg.K_RETURN or key == pg.K_f:
+            self.choose_item()
+
+    def next_item(self):
+        if self.index + 1 < len(self.menu_items):
+            self.menu_items[self.index].set_inactive()
+            self.index += 1
+            self.set_cursor()
+
+    def prev_item(self):
+        if self.index > 0:
+            self.menu_items[self.index].set_inactive()
+            self.index -= 1
+            self.set_cursor()
+
+    def choose_item(self):
+        self.selected = self.party[self.index]
+        self.quit = True
+
+    def set_cursor(self):
+        self.menu_items[self.index].set_active()
+
 class PauseWindow(Window):
     """
     Pause window which is called by game state when it's paused
@@ -102,7 +199,6 @@ class PauseWindow(Window):
         super().__init__(x, y, width, height)
         helper = StringsHelper("en")
         menu_strings = helper.get_strings("pause_menu")
-        self.quit = False
         self.add_items(menu_strings)
         self.cursor_pos = 0
         self.set_cursor()
@@ -121,7 +217,7 @@ class PauseWindow(Window):
     def draw(self, surface):
         super().draw(surface)
         for i in self.menu_items:
-            surface.blit(i.text, i.rect)
+            surface.blit(i.image, i.rect)
 
     def update(self, key):
         if key == pg.K_w or key == pg.K_UP:
@@ -163,12 +259,12 @@ class PartyWindow(Window):
         self.party = party
         self.current_member = party[0]
         self.index = 0
-        self.quit = False
         helper = StringsHelper("en")
         self.first_column_strings = helper.get_strings("party_menu_info_first")
         self.second_column_strings = helper.get_strings("party_menu_info_second")
         self.spell_string = helper.get_string("party_menu_info_others", "sp")
         self.spell_items = []
+        self.drawables = []
         self.set_character()
 
     def update(self, key):  # TODO: Refactor
@@ -184,60 +280,150 @@ class PartyWindow(Window):
         self.set_character()
 
     def set_character(self):
+        self.drawables.clear()
         self.set_portrait()
-        self.text_items = self.add_info_items()
+        self.add_info_items()
 
     def set_portrait(self):
         self.portrait = self.current_member.portrait
         rect = self.portrait[1]
         rect.x = self.x + self.width * 0.01
         rect.y = self.y + self.height * 0.01
-        self.name_lbl = InfoItem(self.current_member.name, None, None, 24, rect.x + rect.width + 10, rect.y + 10)
-        self.class_lbl = InfoItem(str(self.current_member), None, None, 24, rect.x + rect.width + 10, rect.y + 25)
+        self.drawables.append(Label(self.current_member.name, LBL_BLUE, None,  24, rect.x + rect.width + 10, rect.y + 10))
+        self.drawables.append(Label(str(self.current_member), LBL_BLUE, None, 24, rect.x + rect.width + 10, rect.y + 25))
 
     def add_info_items(self): # TODO: Font size must be selected to match screen resolution
         font_size = 18
-        text_items = []
         atrs = self.current_member.get_attributes()
         worn_items = self.current_member.get_worn_items()
         x = self.x + self.width * 0.01
         padding_first = self.y + self.height * 0.1 + self.portrait[1].height - font_size / 2  # starting padding for first item to be near window center
         y = padding_first
         for i in sorted(self.first_column_strings.keys()):
-            text_items.append(InfoItem(self.first_column_strings[i], atrs[i[2:]], None, font_size, x, y))
-            # y += font_size
+            self.drawables.append(InfoItem(self.first_column_strings[i], atrs[i[2:]], None, font_size, x, y))
             y += self.height * 0.06
 
         y = padding_first
-        x = text_items[-1].value_rect.x + self.width * 0.05
+        x = self.drawables[-1].value_rect.x + self.width * 0.05
         for i in sorted(self.second_column_strings.keys()):
             item = worn_items[i[2:]]
             value = str(item)
-            text_items.append(InfoItem(self.second_column_strings[i], value, None, font_size, x, y))
+            self.drawables.append(InfoItem(self.second_column_strings[i], value, None, font_size, x, y))
             y += self.height * 0.06
 
-        self.add_spells(text_items[-1].value_rect.x, padding_first, font_size)
-
-        return text_items
+        self.add_spells(self.drawables[-1].value_rect.x, padding_first, font_size)
 
     def add_spells(self, left_x, padding_first, font_size):
-        self.spell_items.clear()
         x = left_x + self.width * 0.20
         y = padding_first - self.height * 0.06
-        self.spell_text = Label(self.spell_string, '#00E6E6', None, 24, x, y)
+        self.drawables.append(Label(self.spell_string, LBL_BLUE, None, 24, x, y))
         for i in self.current_member.spells:
             y += self.height * 0.06
             lbl = Label(str(i), 'white', None, font_size, x, y)
-            self.spell_items.append(lbl)
+            self.drawables.append(lbl)
 
-    def draw(self, surface): # TODO: Refactor
+    def draw(self, surface):
         super().draw(surface)
-        for i in self.text_items:
-            surface.blit(i.label_text, i.label_rect)
-            surface.blit(i.value_text, i.value_rect)
-        for i in self.spell_items:
-            surface.blit(i.text, i.rect)
         surface.blit(*self.portrait)
-        surface.blit(self.name_lbl.label_text, self.name_lbl.label_rect)
-        surface.blit(self.class_lbl.label_text, self.class_lbl.label_rect)
-        surface.blit(self.spell_text.text, self.spell_text.rect)
+        for i in self.drawables:
+            if type(i) is InfoItem:
+                surface.blit(i.label_text, i.label_rect)
+                surface.blit(i.value_text, i.value_rect)
+            else:
+                surface.blit(i.image, i.rect)
+
+
+class InventoryWindow(Window):
+    """
+    Inventory window which shows content of party inventory,allows interaction with it
+    """
+
+    def __init__(self, x, y, width, height, party):
+        super().__init__(x, y, width, height)
+        self.party = party
+        self.index = 0
+        self.drawables = []
+        self.description = None
+        self.menu_items = []
+        self.load_items()
+        self.set_cursor()
+        self.dialog = None
+
+    def load_items(self):
+        font_size = 18
+        y = self.y + self.height * 0.1 + font_size / 2
+        x = self.x + self.width * 0.01
+
+        self.drawables.clear()
+        self.menu_items.clear()
+        for i in self.party.inventory:
+            item = MenuItem(i,str(i),None,font_size,'white',LBL_BLUE,x ,y, False)
+            self.drawables.append(item)
+            self.menu_items.append(item)
+            y+= self.height * 0.06
+
+
+    def draw(self, surface):
+        super().draw(surface)
+        for i in self.drawables:
+            surface.blit(i.image, i.rect)
+        surface.blit(self.description.image, self.description.rect)
+        if self.dialog is not None:
+            self.dialog.draw(surface)
+
+    def update(self, key):
+        if self.dialog is not None:
+            self.dialog.update(key)
+            if self.dialog.quit == True:
+                if type(self.dialog) is SelectCharacterWindow:
+                    self.apply_selection(self.dialog.selected)
+                self.dialog = None
+        else:
+            if key == pg.K_DOWN or key == pg.K_s:
+                self.next_item()
+            elif key == pg.K_UP or key == pg.K_w:
+                self.prev_item()
+            elif key == pg.K_RETURN or key == pg.K_f:
+                self.choose_item()
+
+    def set_cursor(self):
+        self.menu_items[self.index].set_active()
+        text = self.party.inventory[self.index].info
+        self.description = Label(text, 'white', None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
+
+    def next_item(self):
+        if self.index + 1 < len(self.menu_items):
+            self.menu_items[self.index].set_inactive()
+            self.index += 1
+            self.set_cursor()
+
+    def prev_item(self):
+        if self.index > 0:
+            self.menu_items[self.index].set_inactive()
+            self.index -= 1
+            self.set_cursor()
+
+    def create_message(self, msg):
+        self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
+
+    def create_character_dialog(self):
+        self.dialog = SelectCharacterWindow(self.width / 2, self.height / 2, 100, 100, self.party)
+
+    def apply_selection(self, target):
+        if type(self.party.inventory[self.index]) is Weapon:
+            self.party.inventory.append(target.weapon)
+            target.weapon = self.party.inventory[self.index]
+        elif type(self.party.inventory[self.index]) is Armor:
+            self.party.inventory.append(target.armor)
+
+        del self.party.inventory[self.index]
+
+        self.load_items()
+        self.set_cursor()
+
+    def choose_item(self):
+        item = self.party.inventory[self.index]
+        if type(item) is Usable:
+            self.create_message('This item can be only used in battle')
+        else:
+            self.create_character_dialog()

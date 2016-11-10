@@ -26,7 +26,9 @@ class PlayerParty(pg.sprite.Sprite):
         self.set_animations()
         self.current_anim = None
         self.paused = False
-        self.inventory = [] # content of common inventory
+        item = Usable('Phoenix Down', 300, 'Ressurects fallen party members')
+        sitem = Weapon('BFG', 228, 228, 'Instant kill')
+        self.inventory = [item, sitem] # content of common inventory
         self.create_party()
 
     def create_party(self):
@@ -303,8 +305,8 @@ class BaseMember:
         self.LVL = 1  # Starting level is 1
         self.MAX_LVL = 25
         self.spells = []  # List of spell objects which Warrior can cast
-        self.armor = Armor('Coat', 2, 10)  # Armor item
-        self.weapon = Weapon('Knife', 2, 8) # Weapon item
+        self.armor = Armor('Coat', 2, 10, 'coat')  # Armor item
+        self.weapon = Weapon('Knife', 2, 8, 'knife') # Weapon item
         self.EXP = 0  # Starting experience
         self.UP_EXP = 0
         self.INT = 0
@@ -375,16 +377,18 @@ class BaseItem:
     Represents basic inventory item class
     """
 
-    def __init__(self, name, cost):
+    def __init__(self, name, cost, info):
         self.name = name
         self.cost = int(cost)
+        self.info = info
+
 
 class Weapon(BaseItem):
     """
     Represents weapon item class for inventory
     """
 
-    def __init__(self, name, dmg, cost):
+    def __init__(self, name, dmg, cost, info):
         """
 
         :param name: string - weapon name
@@ -392,7 +396,7 @@ class Weapon(BaseItem):
         :param cost: int - weapon cost
         :return:
         """
-        super().__init__(name, cost)
+        super().__init__(name, cost, info)
         self.dmg = dmg
 
     def __str__(self):
@@ -404,8 +408,8 @@ class Armor(BaseItem):
     Represents armor item class for inventory
     """
 
-    def __init__(self, name, defence, cost):
-        super().__init__(name, cost)
+    def __init__(self, name, defence, cost, info):
+        super().__init__(name, cost, info)
         self.defence = defence
 
     def __str__(self):
@@ -417,8 +421,11 @@ class Usable(BaseItem):
     Represents usable item like potion, which applies some effect to user
     """
 
-    def __init__(self, name, cost):
-        super().__init__(name, cost)
+    def __init__(self, name, cost, info):
+        super().__init__(name, cost, info)
+
+    def __str__(self):
+        return '{} ({} G)'.format(self.name, self.cost)
 
     def apply_effect(self, target):
         """
@@ -457,7 +464,7 @@ class Warrior(BaseMember):
 
     def __init__(self):
         super().__init__()
-        self.name = 'Sid'
+        self.name = 'Cid'
         self.INT = 10  # Intelligence, influences mana points
         self.STR = 10  # Strength, influences physical damage
         self.DEX = 15  # Dexterity, influences pure damage taken from physical attacks
