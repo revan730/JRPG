@@ -367,6 +367,7 @@ class WorldMapState(MapState):
         self.tiled_map = load_pygame(callback['map_f'])
         self.player_party = callback['player_party']
         self.player_party.set_pos(callback['pos_x'], callback['pos_y'])
+        self.player_party.reset_scale() # Reset player party's rect scale after local map
                 
     def get_event(self, event):
         super().get_event(event)
@@ -388,15 +389,17 @@ class LocalMapState(MapState):  # TODO: Not fully implemented
         self.player_party.set_pos(persistent['pos_x'], persistent['pos_y'])
         self.bg = pg.Surface((self.screen_width, self.screen_height))
         self.bg.fill(pg.Color(self.tiled_map.background_color))
+        self.player_party.scale_up() # Player party's sprite is 2-x scaled on local map
 
     def draw(self, surface):
         super().draw(surface)
         size = self.scaled_size
+        scaled_party = self.player_party.get_scaled() # Sprite image changes every frame, so it has to be scaled every time
         for layer in self.tiled_map.visible_layers:
             for x, y, image in layer.tiles():
                 scaled_image = pg.transform.scale(image, (size, size))
                 surface.blit(scaled_image, self.camera.apply(pg.Rect(x * size, y * size, size, size)))
-            surface.blit(self.player_party.image, self.camera.apply(self.player_party.rect))
+            surface.blit(scaled_party, self.camera.apply(self.player_party.rect))
         if self.menu is not None:
             self.menu.draw(surface)
         if self.pause_menu is not None:

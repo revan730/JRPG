@@ -3,6 +3,8 @@ from ResourceHelpers import SettingsHelper as Settings, SpritesHelper as Sprites
 from Events import TeleportEvent
 import pyganim
 
+P_HEIGHT = 18
+P_WIDTH = 15
 
 class PlayerParty(pg.sprite.Sprite):
     """
@@ -17,8 +19,8 @@ class PlayerParty(pg.sprite.Sprite):
         :return:
         """
         pg.sprite.Sprite.__init__(self)
-        self.image = pg.Surface((15, 18))
-        self.rect = pg.Rect(x, y, 15, 18)
+        self.image = pg.Surface((P_WIDTH, P_HEIGHT))
+        self.rect = pg.Rect(x, y, P_WIDTH, P_HEIGHT)
         self.iter = 0
         self.xvel = 0
         self.yvel = 0
@@ -194,6 +196,22 @@ class PlayerParty(pg.sprite.Sprite):
                 event_args = {'teleport': t}
                 tp_event = pg.event.Event(TeleportEvent, event_args)
                 pg.event.post(tp_event)
+
+    def scale_up(self):
+        """
+        Scale player party sprite and rect two times (for local map state)
+        :return:
+        """
+        self.rect.width *= 2
+        self.rect.height *= 2
+
+    def get_scaled(self):
+        return  pg.transform.scale(self.image, (P_WIDTH * 2, P_HEIGHT * 2))
+
+    def reset_scale(self):
+        self.rect.width = P_WIDTH
+        self.rect.height = P_HEIGHT
+        self.image = pg.transform.scale(self.image, (P_WIDTH, P_HEIGHT))
 
     def add_items(self, *items):
         """

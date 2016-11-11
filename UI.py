@@ -4,6 +4,7 @@ from ResourceHelpers import StringsHelper
 from Player import Usable, Armor, Weapon
 
 LBL_BLUE = '#00E6E6'
+LBL_WHITE = 'white'
 
 class MenuItem:
     """
@@ -66,7 +67,7 @@ class InfoItem:
         self.caption = text
         self.font_size = size
         self.label_color = LBL_BLUE
-        self.value_color = 'white'
+        self.value_color = LBL_WHITE
         self.font = pg.font.Font(font, size)
         self.x = x
         self.y = y
@@ -144,7 +145,7 @@ class MessageWindow(Window):
 
     def __init__(self, x, y, width, height, message):
         super().__init__(x, y, width, height)
-        self.lbl = Label(message, 'white', None, 24, self.x + self.width / 2, self.y + self.height / 2)
+        self.lbl = Label(message, LBL_WHITE, None, 24, self.x + self.width / 2, self.y + self.height / 2)
 
     def draw(self, surface):
         super().draw(surface)
@@ -180,7 +181,7 @@ class SelectCharacterWindow(Window, Menu):
         y = padding
         ind = 0
         for i in item_strings:
-            item = MenuItem(ind, i, None, font_size, 'white', 'green', x, y)
+            item = MenuItem(ind, i, None, font_size, LBL_WHITE, 'green', x, y)
             self.menu_items.append(item)
             y += font_size
             ind += 1
@@ -222,7 +223,7 @@ class PauseWindow(Window, Menu):
         padding = self.height / 2 + self.y - font_size / 2  # starting padding for first item to be near window center
         y = padding
         for i in sorted(item_strings.keys()):
-            item = MenuItem(i, item_strings[i], None, font_size, 'white', 'green', x, y)
+            item = MenuItem(i, item_strings[i], None, font_size, LBL_WHITE, 'green', x, y)
             self.menu_items.append(item)
             y += font_size
 
@@ -328,7 +329,7 @@ class PartyWindow(Window, Menu):
         self.drawables.append(Label(self.spell_string, LBL_BLUE, None, 24, x, y))
         for i in self.current_member.spells:
             y += self.height * 0.06
-            lbl = Label(str(i), 'white', None, font_size, x, y)
+            lbl = Label(str(i), LBL_WHITE, None, font_size, x, y)
             self.drawables.append(lbl)
 
     def draw(self, surface):
@@ -366,7 +367,7 @@ class InventoryWindow(Window, Menu):
         self.drawables.clear()
         self.menu_items.clear()
         for i in self.party.inventory:
-            item = MenuItem(i,str(i),None,font_size,'white',LBL_BLUE,x ,y, False)
+            item = MenuItem(i,str(i),None,font_size,LBL_WHITE,LBL_BLUE,x ,y, False)
             self.drawables.append(item)
             self.menu_items.append(item)
             y+= self.height * 0.06
@@ -397,7 +398,7 @@ class InventoryWindow(Window, Menu):
     def set_cursor(self):
         self.menu_items[self.index].set_active()
         text = self.party.inventory[self.index].info
-        self.description = Label(text, 'white', None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
+        self.description = Label(text, LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
 
     def create_message(self, msg):
         self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
