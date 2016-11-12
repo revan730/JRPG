@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
-from Events import StateCallEvent, StateExitEvent, TeleportEvent
+from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper
-from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow
+from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow
 from Player import PlayerParty, Camera, Teleport
 from pytmx import load_pygame
 
@@ -207,11 +207,12 @@ class MapState(GameState):
         self.scaled_size = self.tile_size * self.scale_factor
         self.colliders = self.create_colliders()
         self.teleports = self.create_teleports()
+        self.npcs = self.create_npcs()
         self.pause_menu = None
         self.menu = None
 
     def update(self, dt):
-        self.player_party.update(self.colliders, self.teleports)
+        self.player_party.update(self.colliders, self.teleports, self.npcs)
         self.camera.update(self.player_party)
         if self.pause_menu is not None:
             if self.pause_menu.quit:
@@ -234,6 +235,8 @@ class MapState(GameState):
             self.toggle_menu(PartyWindow)
         elif self.pause_menu is None and event.type == pg.KEYDOWN and event.key == pg.K_i:
             self.toggle_menu(InventoryWindow)
+        elif self.pause_menu is None and event.type == EncounterEvent and event.npc == 'trader':
+            self.toggle_menu(TraderWindow)
         elif self.pause_menu is None and self.menu is None:  # Handle player control only if menu is not active
             if event.type == pg.KEYDOWN and event.key == pg.K_w:
                 self.player_party.up = True
@@ -264,7 +267,6 @@ class MapState(GameState):
             x = self.screen_width / 2 - width / 2
             y = self.screen_height / 2 - height / 2
             self.pause_menu = PauseWindow(x, y, width, height)
-            # self.pause_menu = ui.PartyWindow(x, y, width, height, self.player_party)
         else:
             self.pause_menu = None
             self.on_resume()
@@ -317,12 +319,28 @@ class MapState(GameState):
             p = self.tiled_map.get_tile_properties(x, y, tp_index)
             pos_x = int(p['pos_x'])
             pos_y = int(p['pos_y'])
+            width = p['width']
             map_f = MapsHelper.get_map(p['map_f'])
             world = p['world']
             tp = Teleport(rect, pos_x, pos_y, map_f, world)
             teleports.append(tp)
 
         return teleports
+
+    def create_npcs(self):
+        npcs = []
+        size = self.scaled_size
+        npc_index = int(self.tiled_map.properties['npc_layer_index'])
+        for x, y, image in self.tiled_map.get_layer_by_name('npc').tiles():
+            p = self.tiled_map.get_tile_properties(x ,y, npc_index)
+            width = p['width']
+            heigth = p['height']
+            name = p['npc']
+            rect = pg.Rect(x * size, y * size, width, heigth)
+            npc = {'rect': rect, 'name': name}
+            npcs.append(npc)
+
+        return npcs
 
 
 class WorldMapState(MapState):

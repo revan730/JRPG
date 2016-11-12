@@ -63,7 +63,7 @@ class InfoItem:
     """
     Represents text item with caption and value,cannot be selected
     """
-    def __init__(self, text, value, font, size, x, y):
+    def __init__(self, text, value, font, size, x, y, padding):
         self.caption = text
         self.font_size = size
         self.label_color = LBL_BLUE
@@ -71,6 +71,7 @@ class InfoItem:
         self.font = pg.font.Font(font, size)
         self.x = x
         self.y = y
+        self.padding = padding
         self.set_value(value)
 
     def set_value(self, value):
@@ -83,7 +84,7 @@ class InfoItem:
         self.label_text = self.font.render(self.caption, True, pg.Color(self.label_color))
         self.label_rect = self.label_text.get_rect(x=self.x, y=self.y)
         self.value_text = self.font.render(self.value, True, pg.Color(self.value_color))
-        self.value_rect = self.value_text.get_rect(center=(self.x + 100, self.y + 5))
+        self.value_rect = self.value_text.get_rect(center=(self.x + self.padding, self.y + 5))
 
 
 class Menu:
@@ -93,6 +94,20 @@ class Menu:
 
     def __init__(self):
         self.index = 0
+        self.menu_items = []
+
+    def update(self, key):
+        """
+        Update window state on key input event
+        :param key: pygame key code
+        :return:
+        """
+        if key == pg.K_w or key == pg.K_UP:
+            self.prev_item()
+        elif key == pg.K_s or key == pg.K_DOWN:
+            self.next_item()
+        elif key == pg.K_RETURN or key == pg.K_f:
+            self.choose_item()
 
     def next_item(self):
         if self.index + 1 < len(self.menu_items):
@@ -110,7 +125,8 @@ class Menu:
         pass
 
     def set_cursor(self):
-        self.menu_items[self.index].set_active()
+        if len(self.menu_items) > 0:
+            self.menu_items[self.index].set_active()
 
 class Window:
     """
@@ -124,18 +140,10 @@ class Window:
         self.quit = False
         self.bg = pg.Surface((width, height))
         self.bg.fill(pg.Color('#000060'))
-        self.menu_items = []
+        self.drawables = []
 
     def draw(self, surface):
         surface.blit(self.bg, (self.x, self.y))
-
-    def update(self, key):
-        """
-        Update window state
-        :param key: pygame key code of pressed key
-        :return:
-        """
-        pass
 
 
 class MessageWindow(Window):
@@ -192,12 +200,7 @@ class SelectCharacterWindow(Window, Menu):
             surface.blit(i.image, i.rect)
 
     def update(self, key):
-        if key == pg.K_w or key == pg.K_UP:
-            self.prev_item()
-        elif key == pg.K_s or key == pg.K_DOWN:
-            self.next_item()
-        elif key == pg.K_RETURN or key == pg.K_f:
-            self.choose_item()
+        super(SelectCharacterWindow, self).update(key)
 
     def choose_item(self):
         self.selected = self.party[self.index]
@@ -233,12 +236,7 @@ class PauseWindow(Window, Menu):
             surface.blit(i.image, i.rect)
 
     def update(self, key):
-        if key == pg.K_w or key == pg.K_UP:
-            self.prev_item()
-        elif key == pg.K_s or key == pg.K_DOWN:
-            self.next_item()
-        elif key == pg.K_RETURN or key == pg.K_f:
-            self.choose_item()
+        super(PauseWindow, self).update(key)
 
     def choose_item(self):
         if self.index == 0:
@@ -262,7 +260,6 @@ class PartyWindow(Window, Menu):
         self.second_column_strings = helper.get_strings("party_menu_info_second")
         self.spell_string = helper.get_string("party_menu_info_others", "sp")
         self.spell_items = []
-        self.drawables = []
         self.set_character()
 
     def update(self, key):
@@ -304,13 +301,14 @@ class PartyWindow(Window, Menu):
 
     def add_info_items(self): # TODO: Font size must be selected to match screen resolution
         font_size = 18
+        info_padding = 100 # distance between label and value parts of InfoItem
         atrs = self.current_member.get_attributes()
         worn_items = self.current_member.get_worn_items()
         x = self.x + self.width * 0.01
         padding_first = self.y + self.height * 0.1 + self.portrait[1].height - font_size / 2  # starting padding for first item to be near window center
         y = padding_first
         for i in sorted(self.first_column_strings.keys()):
-            self.drawables.append(InfoItem(self.first_column_strings[i], atrs[i[2:]], None, font_size, x, y))
+            self.drawables.append(InfoItem(self.first_column_strings[i], atrs[i[2:]], None, font_size, x, y, info_padding))
             y += self.height * 0.06
 
         y = padding_first
@@ -318,7 +316,7 @@ class PartyWindow(Window, Menu):
         for i in sorted(self.second_column_strings.keys()):
             item = worn_items[i[2:]]
             value = str(item)
-            self.drawables.append(InfoItem(self.second_column_strings[i], value, None, font_size, x, y))
+            self.drawables.append(InfoItem(self.second_column_strings[i], value, None, font_size, x, y, info_padding))
             y += self.height * 0.06
 
         self.add_spells(self.drawables[-1].value_rect.x, padding_first, font_size)
@@ -352,9 +350,10 @@ class InventoryWindow(Window, Menu):
         super().__init__(x, y, width, height)
         Menu.__init__(self)
         self.party = party
-        self.drawables = []
         self.description = None
         self.menu_items = []
+        self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
+        self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
         self.load_items()
         self.set_cursor()
         self.dialog = None
@@ -377,6 +376,8 @@ class InventoryWindow(Window, Menu):
         for i in self.drawables:
             surface.blit(i.image, i.rect)
         surface.blit(self.description.image, self.description.rect)
+        surface.blit(self.gold.label_text, self.gold.label_rect)
+        surface.blit(self.gold.value_text, self.gold.value_rect)
         if self.dialog is not None:
             self.dialog.draw(surface)
 
@@ -388,17 +389,15 @@ class InventoryWindow(Window, Menu):
                     self.apply_selection(self.dialog.selected)
                 self.dialog = None
         else:
-            if key == pg.K_DOWN or key == pg.K_s:
-                self.next_item()
-            elif key == pg.K_UP or key == pg.K_w:
-                self.prev_item()
-            elif key == pg.K_RETURN or key == pg.K_f:
-                self.choose_item()
+            super(InventoryWindow, self).update(key)
 
     def set_cursor(self):
-        self.menu_items[self.index].set_active()
-        text = self.party.inventory[self.index].info
-        self.description = Label(text, LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
+        if len(self.menu_items) > 0:
+            self.menu_items[self.index].set_active()
+            text = self.party.inventory[self.index].info
+            self.description.set(text)
+        else:
+            self.description.set('Empty')
 
     def create_message(self, msg):
         self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
@@ -424,3 +423,131 @@ class InventoryWindow(Window, Menu):
             self.create_message('This item can be only used in battle')
         else:
             self.create_character_dialog()
+
+
+class TraderWindow(Window, Menu):
+    """
+    Trader window in which player can buy or sell things.Has two states - sell and buy
+    """
+
+    def __init__(self, x, y, width, height, party):
+        super().__init__(x, y, width, height)
+        Menu.__init__(self)
+        self.sell_state = True  # Determine which state should be processed
+        self.party = party
+        self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
+        self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
+        self.buy_items = [Weapon('BFG',228, 300, 'FUCKING BIG'), Usable('Health Potion', 10, 'Restores 10 HP inn battle')]
+        self.load_items()
+        self.set_cursor()
+        self.dialog = None
+
+
+    def draw(self, surface):
+        super().draw(surface)
+        surface.blit(self.description.image, self.description.rect)
+        surface.blit(self.gold.label_text, self.gold.label_rect)
+        surface.blit(self.gold.value_text, self.gold.value_rect)
+        for i in self.drawables:
+            surface.blit(i.image, i.rect)
+        if self.dialog is not None:
+            self.dialog.draw(surface)
+
+    def update(self, key):
+        if self.dialog is not None:
+            self.dialog.update(key)
+            if self.dialog.quit == True:
+                self.dialog = None
+        else:
+            if key == pg.K_q:
+                self.quit = True
+                self.party.set_pos(self.party.rect.x, self.party.rect.y + 5)
+            if key == pg.K_a or key == pg.K_d or key == pg.K_LEFT or key == pg.K_RIGHT:
+                self.switch_state()
+            else:
+                super(TraderWindow, self).update(key)
+
+    def switch_state(self):
+        self.index = 0
+        self.sell_state = not self.sell_state
+        self.load_items()
+
+    def set_cursor(self):
+        if len(self.menu_items) > 0:
+            self.menu_items[self.index].set_active()
+            if self.sell_state is True:
+                text = self.party.inventory[self.index].info
+            else:
+                text = self.buy_items[self.index].info
+            self.description.set(text)
+        else:
+            self.description.set('Empty')
+
+    def create_message(self, msg):
+        self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
+
+    def choose_item(self):
+        if self.sell_state is True:
+            self.sell_item(self.party.inventory[self.index])
+        else:
+            self.buy_item(self.buy_items[self.index])
+
+    def load_items(self):
+        self.drawables.clear()
+        self.menu_items.clear()
+        if self.sell_state is True:
+            self.load_sell_items()
+        else:
+            self.load_buy_items()
+
+    def load_sell_items(self):
+        font_size = 18
+        y = self.y + self.height * 0.1 + font_size / 2
+        x = self.x + self.width * 0.01
+
+        self.drawables.clear()
+        self.menu_items.clear()
+        for i in self.party.inventory:
+            item = MenuItem(i,str(i),None,font_size,LBL_WHITE,LBL_BLUE,x ,y, False)
+            self.drawables.append(item)
+            self.menu_items.append(item)
+            y+= self.height * 0.06
+
+        self.set_cursor()
+
+    def load_buy_items(self):
+        font_size = 18
+        y = self.y + self.height * 0.1 + font_size / 2
+        x = self.x + self.width * 0.01
+
+        self.drawables.clear()
+        self.menu_items.clear()
+        for i in self.buy_items:
+            item = MenuItem(i,str(i),None,font_size,LBL_WHITE,LBL_BLUE,x ,y, False)
+            self.drawables.append(item)
+            self.menu_items.append(item)
+            y+= self.height * 0.06
+
+        self.set_cursor()
+
+
+    def sell_item(self, item):
+        self.party.inventory.remove(item)
+        self.party.gold += item.cost
+        self.index -= 1
+        self.buy_items.append(item)
+
+        self.gold.set_value(self.party.gold)
+        self.load_items()
+
+    def buy_item(self, item):
+        if self.party.gold >= item.cost:
+            self.party.add_items(item)
+            self.party.gold -= item.cost
+            self.index -= 1
+            self.buy_items.remove(item)
+
+            self.gold.set_value(self.party.gold)
+            self.load_items()
+        else:
+            self.create_message('Not enough gold')

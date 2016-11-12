@@ -1,6 +1,6 @@
 import pygame as pg
 from ResourceHelpers import SettingsHelper as Settings, SpritesHelper as Sprites
-from Events import TeleportEvent
+from Events import TeleportEvent, EncounterEvent
 import pyganim
 
 P_HEIGHT = 18
@@ -31,6 +31,7 @@ class PlayerParty(pg.sprite.Sprite):
         item = Usable('Phoenix Down', 300, 'Ressurects fallen party members')
         sitem = Weapon('BFG', 228, 228, 'Instant kill')
         self.inventory = [item, sitem] # content of common inventory
+        self.gold = 20 # Starting gold amount
         self.create_party()
 
     def create_party(self):
@@ -105,7 +106,7 @@ class PlayerParty(pg.sprite.Sprite):
         self.image.set_colorkey(pg.Color(bg_color))
         return anim_down_f, anim_idle_f, anim_left_f, anim_right_f, anim_up_f
 
-    def update(self, colliders, teleports):
+    def update(self, colliders, teleports, npcs):
         defvel = 2
 
         if not self.paused:
@@ -145,6 +146,7 @@ class PlayerParty(pg.sprite.Sprite):
             self.collide_y(colliders)
 
             self.collide_teleport(teleports)
+            self.collide_npc(npcs)
 
     def pause(self):
         """
@@ -196,6 +198,14 @@ class PlayerParty(pg.sprite.Sprite):
                 event_args = {'teleport': t}
                 tp_event = pg.event.Event(TeleportEvent, event_args)
                 pg.event.post(tp_event)
+
+
+    def collide_npc(self, npcs):
+        for n in npcs:
+            if self.rect.colliderect(n['rect']):
+                event_args = {'npc': n['name']}
+                npc_event = pg.event.Event(EncounterEvent, event_args)
+                pg.event.post(npc_event)
 
     def scale_up(self):
         """
