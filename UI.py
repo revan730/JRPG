@@ -128,6 +128,7 @@ class Menu:
         if len(self.menu_items) > 0:
             self.menu_items[self.index].set_active()
 
+
 class Window:
     """
     Basic window class for menu's,like pause,battle action,inventory
@@ -171,8 +172,8 @@ class SelectCharacterWindow(Window, Menu):
     """
 
     def __init__(self, x, y, width, height, party):
-        super().__init__(x ,y, width, height)
-        Menu.__init__(self) # non-cooperative style of multiple inheritance
+        super().__init__(x, y, width, height)
+        Menu.__init__(self)  # non-cooperative style of multiple inheritance
         self.selected = None
         item_strings = []
         self.party = party
@@ -366,10 +367,10 @@ class InventoryWindow(Window, Menu):
         self.drawables.clear()
         self.menu_items.clear()
         for i in self.party.inventory:
-            item = MenuItem(i,str(i),None,font_size,LBL_WHITE,LBL_BLUE,x ,y, False)
+            item = MenuItem(i, str(i), None, font_size, LBL_WHITE, LBL_BLUE, x, y, False)
             self.drawables.append(item)
             self.menu_items.append(item)
-            y+= self.height * 0.06
+            y += self.height * 0.06
 
     def draw(self, surface):
         super().draw(surface)
@@ -384,7 +385,7 @@ class InventoryWindow(Window, Menu):
     def update(self, key):
         if self.dialog is not None:
             self.dialog.update(key)
-            if self.dialog.quit == True:
+            if self.dialog.quit is True:
                 if type(self.dialog) is SelectCharacterWindow:
                     self.apply_selection(self.dialog.selected)
                 self.dialog = None
@@ -437,11 +438,10 @@ class TraderWindow(Window, Menu):
         self.party = party
         self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
         self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
-        self.buy_items = [Weapon('BFG',228, 300, 'FUCKING BIG'), Usable('Health Potion', 10, 'Restores 10 HP inn battle')]
+        self.buy_items = [Weapon('BFG', 228, 300, 'FUCKING BIG'), Usable('Health Potion', 10, 'Restores 10 HP inn battle')]
         self.load_items()
         self.set_cursor()
         self.dialog = None
-
 
     def draw(self, surface):
         super().draw(surface)
@@ -456,7 +456,7 @@ class TraderWindow(Window, Menu):
     def update(self, key):
         if self.dialog is not None:
             self.dialog.update(key)
-            if self.dialog.quit == True:
+            if self.dialog.quit is True:
                 self.dialog = None
         else:
             if key == pg.K_q:
@@ -508,10 +508,10 @@ class TraderWindow(Window, Menu):
         self.drawables.clear()
         self.menu_items.clear()
         for i in self.party.inventory:
-            item = MenuItem(i,str(i),None,font_size,LBL_WHITE,LBL_BLUE,x ,y, False)
+            item = MenuItem(i, str(i), None, font_size, LBL_WHITE, LBL_BLUE, x, y, False)
             self.drawables.append(item)
             self.menu_items.append(item)
-            y+= self.height * 0.06
+            y += self.height * 0.06
 
         self.set_cursor()
 
@@ -523,13 +523,12 @@ class TraderWindow(Window, Menu):
         self.drawables.clear()
         self.menu_items.clear()
         for i in self.buy_items:
-            item = MenuItem(i,str(i),None,font_size,LBL_WHITE,LBL_BLUE,x ,y, False)
+            item = MenuItem(i, str(i), None, font_size, LBL_WHITE, LBL_BLUE, x, y, False)
             self.drawables.append(item)
             self.menu_items.append(item)
-            y+= self.height * 0.06
+            y += self.height * 0.06
 
         self.set_cursor()
-
 
     def sell_item(self, item):
         self.party.inventory.remove(item)

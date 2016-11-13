@@ -254,7 +254,7 @@ class MapState(GameState):
                 self.player_party.right = True
             elif event.type == pg.KEYUP and event.key == pg.K_d:
                 self.player_party.right = False
-        elif self.pause_menu is not None and event.type == pg.KEYDOWN: # Let the pause menu handle key input events first (before other menus)
+        elif self.pause_menu is not None and event.type == pg.KEYDOWN:  # Let the pause menu handle input first
             self.pause_menu.update(event.key)
         elif self.menu is not None and event.type == pg.KEYDOWN:
             self.menu.update(event.key)
@@ -300,8 +300,6 @@ class MapState(GameState):
             for x, y, image in self.tiled_map.layers[i].tiles():
                 p = self.tiled_map.get_tile_properties(x, y, i)
                 if p['walkable'] == 'false':
-                    width = p['width']
-                    height = p['height']
                     rect = pg.Rect(x * size, y * size, self.scaled_size, self.scaled_size)
                     colliders.append(rect)
         return colliders
@@ -319,7 +317,6 @@ class MapState(GameState):
             p = self.tiled_map.get_tile_properties(x, y, tp_index)
             pos_x = int(p['pos_x'])
             pos_y = int(p['pos_y'])
-            width = p['width']
             map_f = MapsHelper.get_map(p['map_f'])
             world = p['world']
             tp = Teleport(rect, pos_x, pos_y, map_f, world)
@@ -332,7 +329,7 @@ class MapState(GameState):
         size = self.scaled_size
         npc_index = int(self.tiled_map.properties['npc_layer_index'])
         for x, y, image in self.tiled_map.get_layer_by_name('npc').tiles():
-            p = self.tiled_map.get_tile_properties(x ,y, npc_index)
+            p = self.tiled_map.get_tile_properties(x, y, npc_index)
             width = p['width']
             heigth = p['height']
             name = p['npc']
@@ -385,7 +382,7 @@ class WorldMapState(MapState):
         self.tiled_map = load_pygame(callback['map_f'])
         self.player_party = callback['player_party']
         self.player_party.set_pos(callback['pos_x'], callback['pos_y'])
-        self.player_party.reset_scale() # Reset player party's rect scale after local map
+        self.player_party.reset_scale()  # Reset player party's rect scale after local map
                 
     def get_event(self, event):
         super().get_event(event)
@@ -407,12 +404,12 @@ class LocalMapState(MapState):  # TODO: Not fully implemented
         self.player_party.set_pos(persistent['pos_x'], persistent['pos_y'])
         self.bg = pg.Surface((self.screen_width, self.screen_height))
         self.bg.fill(pg.Color(self.tiled_map.background_color))
-        self.player_party.scale_up() # Player party's sprite is 2-x scaled on local map
+        self.player_party.scale_up()  # Player party's sprite is 2-x scaled on local map
 
     def draw(self, surface):
         super().draw(surface)
         size = self.scaled_size
-        scaled_party = self.player_party.get_scaled() # Sprite image changes every frame, so it has to be scaled every time
+        scaled_party = self.player_party.get_scaled()  # Sprite changes every frame,so it has to be scaled every time
         for layer in self.tiled_map.visible_layers:
             for x, y, image in layer.tiles():
                 scaled_image = pg.transform.scale(image, (size, size))

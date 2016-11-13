@@ -6,6 +6,7 @@ import pyganim
 P_HEIGHT = 18
 P_WIDTH = 15
 
+
 class PlayerParty(pg.sprite.Sprite):
     """
     Class used to represent player characters' party on world and location map
@@ -30,8 +31,8 @@ class PlayerParty(pg.sprite.Sprite):
         self.paused = False
         item = Usable('Phoenix Down', 300, 'Ressurects fallen party members')
         sitem = Weapon('BFG', 228, 228, 'Instant kill')
-        self.inventory = [item, sitem] # content of common inventory
-        self.gold = 20 # Starting gold amount
+        self.inventory = [item, sitem]  # content of common inventory
+        self.gold = 20  # Starting gold amount
         self.create_party()
 
     def create_party(self):
@@ -199,7 +200,6 @@ class PlayerParty(pg.sprite.Sprite):
                 tp_event = pg.event.Event(TeleportEvent, event_args)
                 pg.event.post(tp_event)
 
-
     def collide_npc(self, npcs):
         for n in npcs:
             if self.rect.colliderect(n['rect']):
@@ -216,7 +216,7 @@ class PlayerParty(pg.sprite.Sprite):
         self.rect.height *= 2
 
     def get_scaled(self):
-        return  pg.transform.scale(self.image, (P_WIDTH * 2, P_HEIGHT * 2))
+        return pg.transform.scale(self.image, (P_WIDTH * 2, P_HEIGHT * 2))
 
     def reset_scale(self):
         self.rect.width = P_WIDTH
@@ -334,7 +334,7 @@ class BaseMember:
         self.MAX_LVL = 25
         self.spells = []  # List of spell objects which Warrior can cast
         self.armor = Armor('Coat', 2, 10, 'coat')  # Armor item
-        self.weapon = Weapon('Knife', 2, 8, 'knife') # Weapon item
+        self.weapon = Weapon('Knife', 2, 8, 'knife')  # Weapon item
         self.EXP = 0  # Starting experience
         self.UP_EXP = 0
         self.INT = 0
@@ -484,6 +484,7 @@ class Spell:
 
     def __str__(self):
         return '{} ({} MP)'.format(self.name, self.mp)
+
 
 class Warrior(BaseMember):
     """
