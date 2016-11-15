@@ -28,9 +28,9 @@ class StringsHelper:
         :return: string
         """
 
-        dict = self.get_strings(file_name)
+        result = self.get_strings(file_name)
 
-        return dict[key]
+        return result[key]
 
 
 class SettingsHelper:

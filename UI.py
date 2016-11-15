@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import pygame as pg
 from ResourceHelpers import StringsHelper
-from Player import Usable, Armor, Weapon
+from Player import Usable, Armor, Weapon, Spell
+from Player import CharacterEnum as character
 
 LBL_BLUE = '#00E6E6'
 LBL_WHITE = 'white'
@@ -142,9 +143,11 @@ class Window:
         self.bg = pg.Surface((width, height))
         self.bg.fill(pg.Color('#000060'))
         self.drawables = []
+        self.dialog = None
 
     def draw(self, surface):
         surface.blit(self.bg, (self.x, self.y))
+
 
 
 class MessageWindow(Window):
@@ -438,7 +441,7 @@ class TraderWindow(Window, Menu):
         self.party = party
         self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
         self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
-        self.buy_items = [Weapon('BFG', 228, 300, 'FUCKING BIG'), Usable('Health Potion', 10, 'Restores 10 HP inn battle')]
+        self.buy_items = [Weapon('BFG', 228, 300, 'FUCKING BIG'), Usable('Health Potion', 10, 'Restores 10 HP in battle')]
         self.load_items()
         self.set_cursor()
         self.dialog = None
@@ -505,8 +508,6 @@ class TraderWindow(Window, Menu):
         y = self.y + self.height * 0.1 + font_size / 2
         x = self.x + self.width * 0.01
 
-        self.drawables.clear()
-        self.menu_items.clear()
         for i in self.party.inventory:
             item = MenuItem(i, str(i), None, font_size, LBL_WHITE, LBL_BLUE, x, y, False)
             self.drawables.append(item)
@@ -520,8 +521,6 @@ class TraderWindow(Window, Menu):
         y = self.y + self.height * 0.1 + font_size / 2
         x = self.x + self.width * 0.01
 
-        self.drawables.clear()
-        self.menu_items.clear()
         for i in self.buy_items:
             item = MenuItem(i, str(i), None, font_size, LBL_WHITE, LBL_BLUE, x, y, False)
             self.drawables.append(item)
@@ -542,6 +541,85 @@ class TraderWindow(Window, Menu):
     def buy_item(self, item):
         if self.party.gold >= item.cost:
             self.party.add_items(item)
+            self.party.gold -= item.cost
+            self.index -= 1
+            self.buy_items.remove(item)
+
+            self.gold.set_value(self.party.gold)
+            self.load_items()
+        else:
+            self.create_message('Not enough gold')
+
+
+class WizardWindow(Window, Menu):
+    """
+    Window in which player can buy spells
+    """
+
+    def __init__(self, x, y, width, height, party):
+        super().__init__(x, y, width, height)
+        Menu.__init__(self)
+        self.party = party
+        self.buy_items = [Spell("Ice Blast", 70, 5, "Deals 5 DMG to enemy", character.Mage)]
+        self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
+        self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
+        self.load_items()
+        self.set_cursor()
+
+    def draw(self, surface):
+        super().draw(surface)
+        for i in self.drawables:
+            surface.blit(i.image, i.rect)
+        surface.blit(self.gold.label_text, self.gold.label_rect)
+        surface.blit(self.gold.value_text, self.gold.value_rect)
+        surface.blit(self.description.image, self.description.rect)
+        if self.dialog is not None:
+            self.dialog.draw(surface)
+
+    def update(self, key):
+        if self.dialog is not None:
+            self.dialog.update(key)
+            if self.dialog.quit is True:
+                self.dialog = None
+        else:
+            if key == pg.K_q:
+                self.quit = True
+                self.party.set_pos(self.party.rect.x, self.party.rect.y + 5)
+            else:
+                super(WizardWindow, self).update(key)
+
+    def set_cursor(self):
+        if len(self.menu_items) > 0:
+            self.menu_items[self.index].set_active()
+            self.description.set(self.buy_items[self.index].info)
+        else:
+            self.description.set('Empty')
+
+    def load_items(self):
+        self.drawables.clear()
+        self.menu_items.clear()
+
+        font_size = 18
+        y = self.y + self.height * 0.1 + font_size / 2
+        x = self.x + self.width * 0.01
+
+        for i in self.buy_items:
+            item = MenuItem(i, str(i), None, font_size, LBL_WHITE, LBL_BLUE, x, y, False)
+            self.drawables.append(item)
+            self.menu_items.append(item)
+            y += self.height * 0.06
+
+        self.set_cursor()
+
+    def create_message(self, msg):
+        self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
+
+    def choose_item(self):
+        self.buy_item(self.buy_items[self.index])
+
+    def buy_item(self, item):
+        if self.party.gold >= item.cost:
+            self.party.add_spells(item)
             self.party.gold -= item.cost
             self.index -= 1
             self.buy_items.remove(item)

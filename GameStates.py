@@ -3,7 +3,7 @@
 import pygame as pg
 from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper
-from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow
+from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow, WizardWindow
 from Player import PlayerParty, Camera, Teleport
 from pytmx import load_pygame
 
@@ -237,6 +237,8 @@ class MapState(GameState):
             self.toggle_menu(InventoryWindow)
         elif self.pause_menu is None and event.type == EncounterEvent and event.npc == 'trader':
             self.toggle_menu(TraderWindow)
+        elif self.pause_menu is None and event.type == EncounterEvent and event.npc == 'wizard':
+            self.toggle_menu(WizardWindow)
         elif self.pause_menu is None and self.menu is None:  # Handle player control only if menu is not active
             if event.type == pg.KEYDOWN and event.key == pg.K_w:
                 self.player_party.up = True

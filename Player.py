@@ -1,3 +1,4 @@
+from enum import Enum, unique
 import pygame as pg
 from ResourceHelpers import SettingsHelper as Settings, SpritesHelper as Sprites
 from Events import TeleportEvent, EncounterEvent
@@ -5,6 +6,17 @@ import pyganim
 
 P_HEIGHT = 18
 P_WIDTH = 15
+
+
+@unique
+class CharacterEnum(Enum):
+    """
+    Enumerate for character type check
+    """
+    Warrior = 0
+    Mage = 1
+    Healer = 2
+    Ranger = 3
 
 
 class PlayerParty(pg.sprite.Sprite):
@@ -232,6 +244,18 @@ class PlayerParty(pg.sprite.Sprite):
         items = list(items)
         self.inventory.extend(items)
 
+    def add_spells(self, *spells):
+        spells = list(spells)
+        for s in spells:
+            if s.char == CharacterEnum.Warrior:
+                self.warrior.add_spells(s)
+            elif s.char == CharacterEnum.Mage:
+                self.mage.add_spells(s)
+            elif s.char == CharacterEnum.Healer:
+                self.healer.add_spells(s)
+            elif s.char == CharacterEnum.Ranger:
+                self.ranger.add_spells(s)
+
     def draw(self, surface):
         surface.blit(self.image, self.rect)
 
@@ -399,6 +423,9 @@ class BaseMember:
         portrait_image = pg.image.load(portrait_path)
         self.portrait = (portrait_image, portrait_image.get_rect())
 
+    def add_spells(self, *spells):
+        self.spells.extend(list(spells))
+
 
 class BaseItem:
     """
@@ -469,10 +496,21 @@ class Spell:
     Represents spell, which can be applied to characters
     """
 
-    def __init__(self, name, cost, mp_cost):
+    def __init__(self, name, cost, mp_cost, info, character):
+        """
+
+        :param name: string - spell name
+        :param cost: int - cost in gold
+        :param mp_cost: int - mana cost
+        :param info: string - spell description
+        :param character: CharacterEnum - determines which character can learn this spell
+        :return:
+        """
         self.name = name
         self.cost = int(cost)
         self.mp = int(mp_cost)
+        self.info = info
+        self.char = character
 
     def apply(self, target):
         """
@@ -568,7 +606,7 @@ class Healer(BaseMember):
         self._res_name = 'healer'
         self.recalculate_stats()
         self.load_sprites()
-        self.spells.append(Spell('Heal', 5, 5))
+        self.spells.append(Spell('Heal', 5, 5, "Restores 5 HP", CharacterEnum.Healer))
 
     def __str__(self):
         return 'Healer'
