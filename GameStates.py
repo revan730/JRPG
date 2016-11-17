@@ -1,10 +1,13 @@
+#!usr/bin/python
+
 # -*- coding: utf-8 -*-
 
 import pygame as pg
 from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent
-from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper
+from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
 from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow, WizardWindow
 from Player import PlayerParty, Camera, Teleport
+from NPC import Test
 from pytmx import load_pygame
 
 
@@ -57,6 +60,8 @@ class GameState:
         self.quit = False
         self.finish = False
         self.screen_rect = pg.display.get_surface().get_rect()
+        self.screen_width = self.screen_rect.width
+        self.screen_height = self.screen_rect.height
         self.persist = persistent
 
     def get_event(self, event):
@@ -104,7 +109,7 @@ class SplashState(GameState):
         self.font = pg.font.Font(None, 24)
         self.text = self.font.render('JRPG Engine', True, pg.Color('dodgerblue'))
         self.text_rect = self.text.get_rect(center=self.screen_rect.center)
-        self.bg = pg.Surface((800, 640))
+        self.bg = pg.Surface((self.screen_width, self.screen_height))
         self.bg.fill(pg.Color('black'))
 
     def get_event(self, event):
@@ -129,9 +134,6 @@ class MainMenuState(GameState):
         super().__init__(persistent)
         helper = StringsHelper("en")
         self.font = pg.font.Font(None, 24)
-        settings = SettingsHelper()
-        self.screen_width = settings.get('screen_width', 800)
-        self.screen_height = settings.get('screen_height', 600)
         self.bg = pg.Surface((self.screen_width, self.screen_height))
         self.bg.fill(pg.Color('black'))
         menu_strings = helper.get_strings("main_menu")
@@ -193,9 +195,6 @@ class MainMenuState(GameState):
 class MapState(GameState):
     def __init__(self, persistent):
         super().__init__(persistent)
-        settings = SettingsHelper()
-        self.screen_width = settings.get('screen_width', 800)
-        self.screen_height = settings.get('screen_height', 600)
         self.tiled_map = load_pygame(self.persist['map_file'])
         if self.persist['player_party'] is not None:
             self.player_party = self.persist['player_party']
@@ -239,6 +238,8 @@ class MapState(GameState):
             self.toggle_menu(TraderWindow)
         elif self.pause_menu is None and event.type == EncounterEvent and event.npc == 'wizard':
             self.toggle_menu(WizardWindow)
+        elif event.type == EncounterEvent and event.npc == 'enemy':
+            self.enter_battle(event)
         elif self.pause_menu is None and self.menu is None:  # Handle player control only if menu is not active
             if event.type == pg.KEYDOWN and event.key == pg.K_w:
                 self.player_party.up = True
@@ -335,11 +336,17 @@ class MapState(GameState):
             width = p['width']
             heigth = p['height']
             name = p['npc']
+            party = p['party_members'] if 'party_members' in p.keys() else None
+            bg = p['bg'] if 'bg' in p.keys() else None
             rect = pg.Rect(x * size, y * size, width, heigth)
-            npc = {'rect': rect, 'name': name}
+            npc = {'rect': rect, 'name': name, 'party_members': party, 'bg': bg}
             npcs.append(npc)
 
         return npcs
+
+    def enter_battle(self, event):
+        args_dict = {'player_party': self.player_party, 'party_members': event.party_members, 'bg': event.bg}
+        self.call_state(BattleState, args_dict)
 
 
 class WorldMapState(MapState):
@@ -400,7 +407,7 @@ class WorldMapState(MapState):
             print(warrior.EXP)
 
 
-class LocalMapState(MapState):  # TODO: Not fully implemented
+class LocalMapState(MapState):
     def __init__(self, persistent):
         super().__init__(persistent)
         self.player_party.set_pos(persistent['pos_x'], persistent['pos_y'])
@@ -432,3 +439,103 @@ class LocalMapState(MapState):  # TODO: Not fully implemented
             tp = event.teleport
             self.tiled_map = load_pygame(tp.map_f)
             self.player_party.set_pos(tp.pos_x, tp.pos_y)
+
+
+class BattleState(GameState):
+    """
+    Game state in which battle with NPC's is handled
+    """
+
+    def __init__(self, persistent):
+        super().__init__(persistent)
+        self.screen_width = self.screen_rect.width
+        self.screen_height = self.screen_rect.height
+        self.player_party = self.persist['player_party']
+        self.bg = None
+        self.pause_menu = None
+        self.npc_party = None
+        self.ui = None  # TODO: Create battle ui class
+        self.sprites = []
+        self.load_npc()
+        self.load_sprites()
+
+    def update(self, dt):
+        super().update(dt)
+        if self.pause_menu is not None:
+            if self.pause_menu.quit:
+                self.pause_menu = None
+                self.on_resume()
+
+
+    def load_npc(self):
+        """
+        Load npc party information
+        :return:
+        """
+        self.npc_party = []
+
+        members = self.persist['party_members'].split(',')
+
+        for i in members:
+            self.npc_party.append(eval(i)())
+
+
+    def load_sprites(self):
+        """
+        Loads sprites of player and npc characters and places them on screen, appends to sprites list
+        :return:
+        """
+        helper = SpritesHelper()
+        image = pg.image.load(helper.get_bg(self.persist['bg']))
+        rect = image.get_rect()
+        rect.height = self.screen_height
+        rect.width = self.screen_width
+        image =  pg.transform.scale(image, (self.screen_width, self.screen_height))
+        self.bg = (image, rect)
+
+        x = self.screen_width * 0.1
+        y = self.screen_height * 0.3
+
+        for i in self.npc_party:
+            i.rect.x = x
+            i.rect.y = y
+            bg_color = "#7bd5fe"
+            i.image.set_colorkey(pg.Color(bg_color))
+            self.sprites.append((i.image, i.rect))
+            y += i.rect.height + 10
+
+        y = self.screen_height * 0.3
+        x = self.screen_width * 0.8
+        for i in self.player_party:
+            i.battle_rect.x = x
+            i.battle_rect.y = y
+            self.sprites.append((i.battle_image, i.battle_rect))
+            y += i.battle_rect.height + 10
+
+
+    def draw(self, surface):
+        surface.blit(*self.bg)
+        for i in self.sprites:
+            surface.blit(*i)
+        # TODO: UI draw
+        if self.pause_menu is not None:
+            self.pause_menu.draw(surface)
+
+    def get_event(self, event):
+        super().get_event(event)
+        if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:  # Handle pause menu (de)activation
+            self.toggle_pause_menu()
+        elif self.pause_menu is not None and event.type == pg.KEYDOWN:  # Let the pause menu handle input first
+            self.pause_menu.update(event.key)
+
+    def toggle_pause_menu(self):
+        if self.pause_menu is None:
+            self.on_pause()
+            width = self.screen_width / 4
+            height = self.screen_height / 4
+            x = self.screen_width / 2 - width / 2
+            y = self.screen_height / 2 - height / 2
+            self.pause_menu = PauseWindow(x, y, width, height)
+        else:
+            self.pause_menu = None
+            self.on_resume()

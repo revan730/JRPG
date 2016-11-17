@@ -1,4 +1,7 @@
+#!usr/bin/python
+
 # -*- coding: utf-8 -*-
+
 import pygame as pg
 from ResourceHelpers import StringsHelper
 from Player import Usable, Armor, Weapon, Spell
@@ -148,6 +151,8 @@ class Window:
     def draw(self, surface):
         surface.blit(self.bg, (self.x, self.y))
 
+    def create_message(self, msg):
+        self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
 
 
 class MessageWindow(Window):
@@ -403,9 +408,6 @@ class InventoryWindow(Window, Menu):
         else:
             self.description.set('Empty')
 
-    def create_message(self, msg):
-        self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
-
     def create_character_dialog(self):
         self.dialog = SelectCharacterWindow(self.width / 2, self.height / 2, 100, 100, self.party)
 
@@ -444,7 +446,6 @@ class TraderWindow(Window, Menu):
         self.buy_items = [Weapon('BFG', 228, 300, 'FUCKING BIG'), Usable('Health Potion', 10, 'Restores 10 HP in battle')]
         self.load_items()
         self.set_cursor()
-        self.dialog = None
 
     def draw(self, surface):
         super().draw(surface)
@@ -485,9 +486,6 @@ class TraderWindow(Window, Menu):
             self.description.set(text)
         else:
             self.description.set('Empty')
-
-    def create_message(self, msg):
-        self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
 
     def choose_item(self):
         if self.sell_state is True:
@@ -610,9 +608,6 @@ class WizardWindow(Window, Menu):
             y += self.height * 0.06
 
         self.set_cursor()
-
-    def create_message(self, msg):
-        self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
 
     def choose_item(self):
         self.buy_item(self.buy_items[self.index])

@@ -1,4 +1,7 @@
+#!usr/bin/python
+
 # -*- coding: utf-8 -*-
+
 import os
 import pickle as pic
 
@@ -93,6 +96,17 @@ class SpritesHelper:
         :return: string with path to sprite
         """
         path = '{res}{sep}{creat}{sep}{type}.gif'.format(res=self.res_dir, sep=os.sep, creat=creature, type=group)
+        if os.path.exists(path):
+            return path
+
+    def get_bg(self, name):
+        """
+        Get path of background image
+        :param name: name of background
+        :return:
+        """
+
+        path = '{res}{sep}backgrounds{sep}{name}.png'.format(res=self.res_dir, sep=os.sep, name=name)
         if os.path.exists(path):
             return path
 

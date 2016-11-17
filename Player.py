@@ -1,3 +1,7 @@
+#!usr/bin/python
+
+# -*- coding: utf-8 -*-
+
 from enum import Enum, unique
 import pygame as pg
 from ResourceHelpers import SettingsHelper as Settings, SpritesHelper as Sprites
@@ -37,6 +41,7 @@ class PlayerParty(pg.sprite.Sprite):
         self.iter = 0
         self.xvel = 0
         self.yvel = 0
+        self.iter_index = 0
         self.up = self.down = self.left = self.right = False
         self.set_animations()
         self.current_anim = None
@@ -215,7 +220,7 @@ class PlayerParty(pg.sprite.Sprite):
     def collide_npc(self, npcs):
         for n in npcs:
             if self.rect.colliderect(n['rect']):
-                event_args = {'npc': n['name']}
+                event_args = {'npc': n['name'], 'party_members': n['party_members'], 'bg': n['bg']}
                 npc_event = pg.event.Event(EncounterEvent, event_args)
                 pg.event.post(npc_event)
 
@@ -273,6 +278,17 @@ class PlayerParty(pg.sprite.Sprite):
 
     def __len__(self):
         return 4
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            item = self[self.iter_index]
+            self.iter_index += 1
+            return item
+        except IndexError:
+            raise StopIteration
 
 
 class Camera(object):
@@ -421,7 +437,13 @@ class BaseMember:
         helper = Sprites()
         portrait_path = helper.get_sprite(self._res_name, 'portrait')
         portrait_image = pg.image.load(portrait_path)
-        self.portrait = (portrait_image, portrait_image.get_rect())
+        self.portrait = (portrait_image, portrait_image.get_rect())  # TODO: Load battle sprites\
+
+        battle_path = helper.get_sprite(self._res_name, 'battle_idle')
+        self.battle_image = pg.transform.scale(pg.image.load(battle_path), (30, 38))
+        bg_color = "#7bd5fe"
+        self.battle_image.set_colorkey(pg.Color(bg_color))
+        self.battle_rect = self.battle_image.get_rect()
 
     def add_spells(self, *spells):
         self.spells.extend(list(spells))
