@@ -5,7 +5,7 @@
 import pygame as pg
 from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
-from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow, WizardWindow
+from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow, WizardWindow, PartyInfoWindow
 from Player import PlayerParty, Camera, Teleport
 from NPC import Test
 from pytmx import load_pygame
@@ -454,10 +454,11 @@ class BattleState(GameState):
         self.bg = None
         self.pause_menu = None
         self.npc_party = None
-        self.ui = None  # TODO: Create battle ui class
         self.sprites = []
+        self.windows = []
         self.load_npc()
         self.load_sprites()
+        self.set_ui()
 
     def update(self, dt):
         super().update(dt)
@@ -512,12 +513,15 @@ class BattleState(GameState):
             self.sprites.append((i.battle_image, i.battle_rect))
             y += i.battle_rect.height + 10
 
+    def set_ui(self):
+        self.windows.append(PartyInfoWindow(self.screen_width * 0.5, self.screen_height * 0.75, self.screen_width * 0.5, self.screen_height * 0.3, self.player_party))
 
     def draw(self, surface):
         surface.blit(*self.bg)
         for i in self.sprites:
             surface.blit(*i)
-        # TODO: UI draw
+        for i in self.windows:
+            i.draw(surface)
         if self.pause_menu is not None:
             self.pause_menu.draw(surface)
 

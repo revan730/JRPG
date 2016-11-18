@@ -91,6 +91,27 @@ class InfoItem:
         self.value_rect = self.value_text.get_rect(center=(self.x + self.padding, self.y + 5))
 
 
+class MemberInfoItem(InfoItem):
+    """
+    Represents text item based on InfoItem to show party member's HP and MP
+    """
+
+    def __init__(self, member, font, size, x, y, padding):
+        super().__init__(member.name, None, font, size, x, y, padding)
+        self.member = member
+        self.label_color = LBL_WHITE
+        self.update()
+
+    def update(self):
+        attrs = self.member.get_attributes()
+        hp = attrs['hp']
+        max_hp = attrs['max_hp']
+        mp = attrs['mp']
+        max_mp = attrs['max_mp']
+        value = '{}/{} HP       {}/{} MP'.format(hp, max_hp, mp, max_mp)
+        self.set_value(value)
+
+
 class Menu:
     """
     Basic class for any ui window with menu's
@@ -151,6 +172,10 @@ class Window:
     def draw(self, surface):
         surface.blit(self.bg, (self.x, self.y))
 
+    def update(self, key):
+        if key == pg.K_q:
+            self.quit = True
+
     def create_message(self, msg):
         self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
 
@@ -210,6 +235,7 @@ class SelectCharacterWindow(Window, Menu):
 
     def update(self, key):
         super(SelectCharacterWindow, self).update(key)
+        Menu.update(self, key)
 
     def choose_item(self):
         self.selected = self.party[self.index]
@@ -246,6 +272,7 @@ class PauseWindow(Window, Menu):
 
     def update(self, key):
         super(PauseWindow, self).update(key)
+        Menu.update(self, key)
 
     def choose_item(self):
         if self.index == 0:
@@ -272,6 +299,8 @@ class PartyWindow(Window, Menu):
         self.set_character()
 
     def update(self, key):
+        super().update(key)
+        Menu.update(self, key)
         if key == pg.K_d or key == pg.K_RIGHT:
             self.next_item()
         elif key == pg.K_a or key == pg.K_LEFT:
@@ -399,6 +428,7 @@ class InventoryWindow(Window, Menu):
                 self.dialog = None
         else:
             super(InventoryWindow, self).update(key)
+            Menu.update(self, key)
 
     def set_cursor(self):
         if len(self.menu_items) > 0:
@@ -412,16 +442,17 @@ class InventoryWindow(Window, Menu):
         self.dialog = SelectCharacterWindow(self.width / 2, self.height / 2, 100, 100, self.party)
 
     def apply_selection(self, target):
-        if type(self.party.inventory[self.index]) is Weapon:
-            self.party.inventory.append(target.weapon)
-            target.weapon = self.party.inventory[self.index]
-        elif type(self.party.inventory[self.index]) is Armor:
-            self.party.inventory.append(target.armor)
+        if target is not None:
+            if type(self.party.inventory[self.index]) is Weapon:
+                self.party.inventory.append(target.weapon)
+                target.weapon = self.party.inventory[self.index]
+            elif type(self.party.inventory[self.index]) is Armor:
+                self.party.inventory.append(target.armor)
 
-        del self.party.inventory[self.index]
+            del self.party.inventory[self.index]
 
-        self.load_items()
-        self.set_cursor()
+            self.load_items()
+            self.set_cursor()
 
     def choose_item(self):
         item = self.party.inventory[self.index]
@@ -470,6 +501,7 @@ class TraderWindow(Window, Menu):
                 self.switch_state()
             else:
                 super(TraderWindow, self).update(key)
+                Menu.update(self, key)
 
     def switch_state(self):
         self.index = 0
@@ -585,6 +617,7 @@ class WizardWindow(Window, Menu):
                 self.party.set_pos(self.party.rect.x, self.party.rect.y + 5)
             else:
                 super(WizardWindow, self).update(key)
+                Menu.update(self, key)
 
     def set_cursor(self):
         if len(self.menu_items) > 0:
@@ -623,3 +656,34 @@ class WizardWindow(Window, Menu):
             self.load_items()
         else:
             self.create_message('Not enough gold')
+
+
+class PartyInfoWindow(Window):
+    """
+    Window which displays info about party members (HP, MP) in battle
+    """
+
+    def __init__(self, x, y, width, height, party):
+        super().__init__(x, y, width, height)
+        self.party = party
+        self.add_info_items()
+
+    def add_info_items(self):
+        font_size = 24
+        info_padding = 250 # distance between label and value parts of InfoItem
+        x = self.x + self.width * 0.01
+        padding_first = self.y + self.height * 0.1 # starting padding for first item to be near window center
+        y = padding_first
+        for i in self.party:
+            self.drawables.append(MemberInfoItem(i, None, font_size, x, y, info_padding))
+            y += font_size + 10
+
+    def draw(self, surface):
+        super().draw(surface)
+        for i in self.drawables:
+            surface.blit(i.label_text, i.label_rect)
+            surface.blit(i.value_text, i.value_rect)
+
+    def update(self, key):
+        for i in self.drawables:
+            i.update()

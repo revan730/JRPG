@@ -288,6 +288,7 @@ class PlayerParty(pg.sprite.Sprite):
             self.iter_index += 1
             return item
         except IndexError:
+            self.iter_index = 0
             raise StopIteration
 
 
@@ -425,7 +426,7 @@ class BaseMember:
         self.MAX_DEF = self.DEX * self.defence_multiplier  # Starting defence (affects only physical damage)
 
     def get_attributes(self):
-        atrs = {'hp': self.HP, 'mp': self.MP, 'str': self.STR, 'int': self.INT, 'dex': self.DEX, 'dur': self.DUR,
+        atrs = {'hp': self.HP, 'max_hp': self.MAX_HP, 'mp': self.MP, 'max_mp': self.MAX_MP, 'str': self.STR, 'int': self.INT, 'dex': self.DEX, 'dur': self.DUR,
                 'exp': self.EXP, 'lvl': self.LVL, 'dmg': self.DMG, 'def': self.MAX_DEF}
         return atrs
 
