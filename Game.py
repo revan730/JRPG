@@ -38,14 +38,6 @@ class Game:
             else:
                 self.state_stack.get_event(event)
 
-    def set_state(self, state_name, args):
-        """
-        Switch to specified state.DEPRECATED???
-        :param state_name: name of state to switch on
-        :param args: dictionary of arguments to be used by state
-        """
-        self.state_stack.push(self.states[self.state_name]())
-
     def update(self, dt):
         """
         Handles active state update
