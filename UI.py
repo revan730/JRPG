@@ -687,3 +687,28 @@ class PartyInfoWindow(Window):
     def update(self, key):
         for i in self.drawables:
             i.update()
+
+class NPCInfoWindow(PartyInfoWindow, Menu):
+    """
+    Window which displays NPC party's members
+    """
+
+    def __init__(self, x, y, width, height, party):
+        super().__init__(x, y, width, height, party)
+        Menu.__init__(self)
+
+    def prev_item(self):
+        self.index -= 1
+        if self.index < 0:
+            self.index = len(self.party) - 1
+
+    def next_item(self):
+        self.index += 1
+        if self.index > len(self.party) - 1:
+            self.index = 0
+
+    def choose_item(self):
+        pass
+
+    def set_cursor(self):
+        pass

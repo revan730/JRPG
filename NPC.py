@@ -16,7 +16,9 @@ class BaseNPC(pg.sprite.Sprite):
         self.spells = []  # List of spell objects which NPC can cast
         self._res_name = None
         self.HP = 0
+        self.MAX_HP = 0
         self.MP = 0
+        self.MAX_MP = 0
         self.DMG = 0
         self.load_sprites()
 
@@ -36,6 +38,11 @@ class BaseNPC(pg.sprite.Sprite):
         """
         pass
 
+    def get_attributes(self):
+        attrs = {'hp': self.HP, 'max_hp': self.MAX_HP, 'mp': self.MP, 'max_mp': self.MAX_MP}
+
+        return attrs
+
 
 class Test(BaseNPC):
     """
@@ -44,9 +51,10 @@ class Test(BaseNPC):
 
     def __init__(self):
         super().__init__()
-        self.HP = 10
-        self.MP = 5
+        self.HP = self.MAX_HP =  10
+        self.MP = self.MAX_MP = 5
         self.DMG = 2
+        self.name = 'Test NPC'
 
     def load_sprites(self):
         helper = SpritesHelper()
