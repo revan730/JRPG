@@ -3,10 +3,10 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
-from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent
+from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent, ActionSelectedEvent, NPCSelectedEvent, CharacterKOEvent
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
-from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow, WizardWindow, PartyInfoWindow, NPCInfoWindow
-from Player import PlayerParty, Camera, Teleport
+from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow, WizardWindow, PartyInfoWindow, NPCInfoWindow, SelectActionWindow
+from Player import PlayerParty, Camera, Teleport, ActionsEnum as Actions
 from NPC import Test
 from pytmx import load_pygame
 
@@ -192,7 +192,7 @@ class MainMenuState(GameState):
             self.quit = True
 
 
-class MapState(GameState):
+class MapState(GameState):  # TODO: quit menu on menuquit event
     def __init__(self, persistent):
         super().__init__(persistent)
         self.tiled_map = load_pygame(self.persist['map_file'])
@@ -454,11 +454,18 @@ class BattleState(GameState):
         self.bg = None
         self.pause_menu = None
         self.npc_party = None
+        self.npc_iter = None  # iterator over npc list
+        self.npc_turn = False  #  Select character from npc party if true
+        self.current_character = None
+        self.current_window = None
         self.sprites = []
         self.windows = []
+        self.dialog = None  # Action select dialog
+        self.last_action = None  # Save last action to know what to do with selected NPC
         self.load_npc()
         self.load_sprites()
         self.set_ui()
+        self.choose_player_character()
 
     def update(self, dt):
         super().update(dt)
@@ -466,7 +473,6 @@ class BattleState(GameState):
             if self.pause_menu.quit:
                 self.pause_menu = None
                 self.on_resume()
-
 
     def load_npc(self):
         """
@@ -479,6 +485,8 @@ class BattleState(GameState):
 
         for i in members:
             self.npc_party.append(eval(i)())
+
+        self.npc_iter = iter(self.npc_party)
 
 
     def load_sprites(self):
@@ -514,8 +522,10 @@ class BattleState(GameState):
             y += i.battle_rect.height + 10
 
     def set_ui(self):
-        self.windows.append(PartyInfoWindow(self.screen_width * 0.5, self.screen_height * 0.75, self.screen_width * 0.5, self.screen_height * 0.3, self.player_party))
-        self.windows.append(NPCInfoWindow(0, self.screen_height * 0.75, self.screen_width * 0.5, self.screen_height * 0.3, self.npc_party))
+        self.party_window = PartyInfoWindow(self.screen_width * 0.498, self.screen_height * 0.698, self.screen_width * 0.5, self.screen_height * 0.3, self.player_party)
+        self.npc_window = NPCInfoWindow(0, self.screen_height * 0.698, self.screen_width * 0.5, self.screen_height * 0.3, self.npc_party)
+        self.windows.append(self.party_window)
+        self.windows.append(self.npc_window)
 
     def draw(self, surface):
         surface.blit(*self.bg)
@@ -523,15 +533,29 @@ class BattleState(GameState):
             surface.blit(*i)
         for i in self.windows:
             i.draw(surface)
+        if self.dialog is not None:
+            self.dialog.draw(surface)
         if self.pause_menu is not None:
             self.pause_menu.draw(surface)
 
     def get_event(self, event):
         super().get_event(event)
+        if event.type == ActionSelectedEvent:
+            self.dialog = None
+            self.take_action(event.action)
+        if event.type == NPCSelectedEvent:
+            self.apply_action(event.npc)
+        if event.type == CharacterKOEvent:
+            # TODO: Remove from NPC list if NPC,red highlight if PC
+            pass
         if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:  # Handle pause menu (de)activation
             self.toggle_pause_menu()
         elif self.pause_menu is not None and event.type == pg.KEYDOWN:  # Let the pause menu handle input first
             self.pause_menu.update(event.key)
+        elif self.dialog is not None and event.type == pg.KEYDOWN:
+            self.dialog.update(event.key)
+        elif self.current_window is not None and event.type == pg.KEYDOWN:
+            self.current_window.update(event.key)
 
     def toggle_pause_menu(self):
         if self.pause_menu is None:
@@ -544,3 +568,64 @@ class BattleState(GameState):
         else:
             self.pause_menu = None
             self.on_resume()
+
+    def choose_player_character(self):
+        try:
+            self.current_character = next(self.player_party)
+            self.call_action_menu()
+        except StopIteration:
+            self.npc_turn = True
+            self.next_turn()
+
+    def choose_npc_character(self):
+        try:
+            self.current_character = next(self.npc_iter)
+            self.call_ai()
+            self.next_turn()
+        except StopIteration:
+            self.npc_turn = False
+            self.npc_iter = iter(self.npc_party)
+            self.next_turn()
+
+    def next_turn(self):
+        if self.npc_turn is True:
+            self.choose_npc_character()
+        else:
+            self.choose_player_character()
+
+    def call_action_menu(self):
+        width = self.screen_width * 0.3
+        heigth = self.screen_height * 0.3
+        self.dialog = SelectActionWindow(self.screen_width / 2 - width, self.screen_height * 0.698, width, heigth)
+
+    def take_action(self, action):  # TODO: Implemented 1 / 4
+        """
+        Set action target selection state for specified action
+        :param action:
+        :return:
+        """
+        if action == Actions.Attack:
+            self.last_action = action
+            self.current_window = self.npc_window
+            self.current_window.enable()
+
+    def apply_action(self, npc):
+        """
+        Apply action on selected target
+        :param npc: target npc
+        :return:
+        """
+        if self.last_action == Actions.Attack:
+            dmg = self.current_character.DMG
+            npc.apply_damage(dmg)
+        self.current_window.update_items()
+        self.current_window.disable()
+        self.current_window = None
+        self.next_turn()
+        self.last_action = None
+
+
+    def call_ai(self):  # TODO: Implement
+        self.current_character.decide(self.player_party, self.npc_party)
+        for i in self.windows:
+            i.update_items()

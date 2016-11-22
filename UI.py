@@ -6,9 +6,12 @@ import pygame as pg
 from ResourceHelpers import StringsHelper
 from Player import Usable, Armor, Weapon, Spell
 from Player import CharacterEnum as character
+from Player import ActionsEnum as actions
+from Events import ActionSelectedEvent, NPCSelectedEvent
 
 LBL_BLUE = '#00E6E6'
 LBL_WHITE = 'white'
+LBL_GREEN = 'green'
 
 class MenuItem:
     """
@@ -97,9 +100,11 @@ class MemberInfoItem(InfoItem):
     """
 
     def __init__(self, member, font, size, x, y, padding):
+        self.active = False
         super().__init__(member.name, None, font, size, x, y, padding)
         self.member = member
         self.label_color = LBL_WHITE
+        self.active_color = LBL_GREEN
         self.update()
 
     def update(self):
@@ -110,6 +115,27 @@ class MemberInfoItem(InfoItem):
         max_mp = attrs['max_mp']
         value = '{}/{} HP       {}/{} MP'.format(hp, max_hp, mp, max_mp)
         self.set_value(value)
+
+    def set_value(self, value):
+        self.value = str(value)
+        if self.active is True:
+            self.set_active()
+        else:
+            self.set_inactive()
+
+    def set_active(self):
+        self.label_text = self.font.render(self.caption, True, pg.Color(self.active_color))
+        self.label_rect = self.label_text.get_rect(x=self.x, y=self.y)
+        self.value_text = self.font.render(self.value, True, pg.Color(self.active_color))
+        self.value_rect = self.value_text.get_rect(center=(self.x + self.padding, self.y + 5))
+        self.active = True
+
+    def set_inactive(self):
+        self.label_text = self.font.render(self.caption, True, pg.Color(self.label_color))
+        self.label_rect = self.label_text.get_rect(x=self.x, y=self.y)
+        self.value_text = self.font.render(self.value, True, pg.Color(self.value_color))
+        self.value_rect = self.value_text.get_rect(center=(self.x + self.padding, self.y + 5))
+        self.active = False
 
 
 class Menu:
@@ -171,6 +197,10 @@ class Window:
 
     def draw(self, surface):
         surface.blit(self.bg, (self.x, self.y))
+        pg.draw.rect(surface, pg.Color(LBL_WHITE), pg.Rect(self.x, self.y, self.width + 2, 2))
+        pg.draw.rect(surface, pg.Color(LBL_WHITE), pg.Rect(self.x + self.width, self.y, 2, self.height + 2))
+        pg.draw.rect(surface, pg.Color(LBL_WHITE), pg.Rect(self.x, self.y + self.height, self.width + 2, 2))
+        pg.draw.rect(surface, pg.Color(LBL_WHITE), pg.Rect(self.x, self.y + 2, 2, self.height))
 
     def update(self, key):
         if key == pg.K_q:
@@ -198,7 +228,7 @@ class MessageWindow(Window):
             self.quit = True
 
 
-class SelectCharacterWindow(Window, Menu):
+class SelectCharacterWindow(Window, Menu):  # TODO: Raise event on selection.Refactor both selection windows (create superclass)
     """
     Dialog window which prints all player party characters to select.Stores selection in 'selected'
     field
@@ -240,6 +270,48 @@ class SelectCharacterWindow(Window, Menu):
     def choose_item(self):
         self.selected = self.party[self.index]
         self.quit = True
+
+
+class SelectActionWindow(Window, Menu):
+    """
+        Dialog window which prints all actions to select.Stores selection in 'selected'
+    field
+    """
+
+    def __init__(self,x ,y ,width, height):
+        super().__init__(x, y, width, height)
+        Menu.__init__(self)
+        item_strings = ['Attack', 'Magic', 'Item', 'Flee']
+        self.add_items(item_strings)
+        self.set_cursor()
+
+    def add_items(self, item_strings):
+        font_size = 32
+
+        x = self.x + self.width / 2
+         # padding = self.height / 2 + self.y - font_size   # starting padding for first item to be near window center
+        padding = self.height / 2 + self.y - font_size
+        y = padding
+        ind = 0
+        for i in item_strings:
+            item = MenuItem(ind, i, None, font_size, LBL_WHITE, 'green', x, y)
+            self.menu_items.append(item)
+            y += font_size * 0.8
+            ind += 1
+
+    def draw(self, surface):
+        super().draw(surface)
+        for i in self.menu_items:
+            surface.blit(i.image, i.rect)
+
+    def update(self, key):
+        super().update(key)
+        Menu.update(self, key)
+
+    def choose_item(self):
+        args_dict = {'action': actions(self.index)}
+        event = pg.event.Event(ActionSelectedEvent, args_dict)
+        pg.event.post(event)
 
 
 class PauseWindow(Window, Menu):
@@ -445,9 +517,10 @@ class InventoryWindow(Window, Menu):
         if target is not None:
             if type(self.party.inventory[self.index]) is Weapon:
                 self.party.inventory.append(target.weapon)
-                target.weapon = self.party.inventory[self.index]
+                target.set_weapon(self.party.inventory[self.index])
             elif type(self.party.inventory[self.index]) is Armor:
                 self.party.inventory.append(target.armor)
+                target.set_armor(self.party.inventory[self.index])
 
             del self.party.inventory[self.index]
 
@@ -658,13 +731,14 @@ class WizardWindow(Window, Menu):
             self.create_message('Not enough gold')
 
 
-class PartyInfoWindow(Window):
+class PartyInfoWindow(Window, Menu):
     """
     Window which displays info about party members (HP, MP) in battle
     """
 
     def __init__(self, x, y, width, height, party):
         super().__init__(x, y, width, height)
+        Menu.__init__(self)
         self.party = party
         self.add_info_items()
 
@@ -675,40 +749,49 @@ class PartyInfoWindow(Window):
         padding_first = self.y + self.height * 0.1 # starting padding for first item to be near window center
         y = padding_first
         for i in self.party:
-            self.drawables.append(MemberInfoItem(i, None, font_size, x, y, info_padding))
+            self.menu_items.append(MemberInfoItem(i, None, font_size, x, y, info_padding))
             y += font_size + 10
 
     def draw(self, surface):
         super().draw(surface)
-        for i in self.drawables:
+        for i in self.menu_items:
             surface.blit(i.label_text, i.label_rect)
             surface.blit(i.value_text, i.value_rect)
 
     def update(self, key):
-        for i in self.drawables:
+        for i in self.menu_items:
+            i.update()
+        super().update(key)
+        Menu.update(self, key)
+
+    def update_items(self):
+        for i in self.menu_items:
             i.update()
 
-class NPCInfoWindow(PartyInfoWindow, Menu):
+class NPCInfoWindow(PartyInfoWindow):
     """
     Window which displays NPC party's members
     """
 
     def __init__(self, x, y, width, height, party):
         super().__init__(x, y, width, height, party)
-        Menu.__init__(self)
 
-    def prev_item(self):
-        self.index -= 1
-        if self.index < 0:
-            self.index = len(self.party) - 1
-
-    def next_item(self):
-        self.index += 1
-        if self.index > len(self.party) - 1:
-            self.index = 0
+    def add_info_items(self):
+        super().add_info_items()
 
     def choose_item(self):
-        pass
+        #  TODO: Raise NPCSelectedEvent
+        args_dict = {'npc': self.party[self.index]}
+        event = pg.event.Event(NPCSelectedEvent, args_dict)
+        pg.event.post(event)
 
-    def set_cursor(self):
-        pass
+    def enable(self):
+        """
+        Enable window's menu
+        :return:
+        """
+        self.index = 0
+        self.set_cursor()
+
+    def disable(self):
+        self.menu_items[self.index].set_inactive()

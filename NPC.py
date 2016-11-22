@@ -43,6 +43,13 @@ class BaseNPC(pg.sprite.Sprite):
 
         return attrs
 
+    def apply_damage(self, dmg):
+        if dmg >= self.HP:
+            self.HP = 0
+            # TODO: Raise CharacterKOEvent
+        else:
+            self.HP -= dmg
+
 
 class Test(BaseNPC):
     """
@@ -60,3 +67,6 @@ class Test(BaseNPC):
         helper = SpritesHelper()
         self.image = pg.transform.scale(pg.image.load(helper.get_sprite('test','battle_idle')), (30, 38))
         self.rect = self.image.get_rect()
+
+    def decide(self, player_party, npc_party):
+        player_party.warrior.apply_damage(self.DMG)

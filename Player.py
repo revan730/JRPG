@@ -5,7 +5,8 @@
 from enum import Enum, unique
 import pygame as pg
 from ResourceHelpers import SettingsHelper as Settings, SpritesHelper as Sprites
-from Events import TeleportEvent, EncounterEvent
+from Events import TeleportEvent, EncounterEvent, CharacterKOEvent
+import random as rand
 import pyganim
 
 P_HEIGHT = 18
@@ -21,6 +22,17 @@ class CharacterEnum(Enum):
     Mage = 1
     Healer = 2
     Ranger = 3
+
+
+@unique
+class ActionsEnum(Enum):
+    """
+    Enumeration for character battle actions
+    """
+    Attack = 0
+    Magic = 1
+    Item = 2
+    Flee = 3
 
 
 class PlayerParty(pg.sprite.Sprite):
@@ -376,6 +388,7 @@ class BaseMember:
         self.spells = []  # List of spell objects which Warrior can cast
         self.armor = Armor('Coat', 2, 10, 'coat')  # Armor item
         self.weapon = Weapon('Knife', 2, 8, 'knife')  # Weapon item
+        self.KO = False  # Knocked out
         self.EXP = 0  # Starting experience
         self.UP_EXP = 0
         self.INT = 0
@@ -417,6 +430,14 @@ class BaseMember:
             self.DUR += self.DUR_INC
             self.recalculate_stats()
 
+    def set_weapon(self, weapon):
+        self.weapon = weapon
+        self.recalculate_stats()
+
+    def set_armor(self, armor):
+        self.armor = armor
+        self.recalculate_stats()
+
     def recalculate_stats(self):
         self.MAX_HP = self.DUR * self.hp_multiplier  # Warrior's starting heals points at level 1
         self.HP = self.MAX_HP  # Current HP, always regenerates to maximum when not in battle
@@ -438,7 +459,7 @@ class BaseMember:
         helper = Sprites()
         portrait_path = helper.get_sprite(self._res_name, 'portrait')
         portrait_image = pg.image.load(portrait_path)
-        self.portrait = (portrait_image, portrait_image.get_rect())  # TODO: Load battle sprites\
+        self.portrait = (portrait_image, portrait_image.get_rect())
 
         battle_path = helper.get_sprite(self._res_name, 'battle_idle')
         self.battle_image = pg.transform.scale(pg.image.load(battle_path), (30, 38))
@@ -449,6 +470,24 @@ class BaseMember:
     def add_spells(self, *spells):
         self.spells.extend(list(spells))
 
+    def apply_damage(self, dmg):
+        """
+        Apply physical damage to party member.Lowered by armor rating
+        :param dmg:
+        :return:
+        """
+
+        damage = dmg  # TODO: CRITICAL - Damage taken is influenced only by armor.Implement evasion, influenced by dexterity
+        if damage < 0:
+            pass  # TODO: raise event to define that damage was ineffective
+        elif damage < self.HP:
+            self.HP -= damage
+        else:  # damage is enough to knock out
+            self.HP = 0
+            self.KO = True
+            args_dict = {'pc': self}
+            event = pg.event.Event(CharacterKOEvent, args_dict)
+            pg.event.post(event)
 
 class BaseItem:
     """
@@ -585,7 +624,7 @@ class Mage(BaseMember):
         super().__init__()
         self.name = 'Karos'
         self.INT = 15
-        self.STR = 10
+        self.STR = 5
         self.DEX = 10
         self.DUR = 10
         self.hp_multiplier = 1
