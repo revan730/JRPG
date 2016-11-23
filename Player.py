@@ -5,7 +5,8 @@
 from enum import Enum, unique
 import pygame as pg
 from ResourceHelpers import SettingsHelper as Settings, SpritesHelper as Sprites
-from Events import TeleportEvent, EncounterEvent, CharacterKOEvent
+from Events import TeleportEvent, EncounterEvent, BattleEvent
+from Events import BattleEnum as Battle
 import random as rand
 import pyganim
 
@@ -485,8 +486,8 @@ class BaseMember:
         else:  # damage is enough to knock out
             self.HP = 0
             self.KO = True
-            args_dict = {'pc': self}
-            event = pg.event.Event(CharacterKOEvent, args_dict)
+            args_dict = {'sub': Battle.CharacterKO, 'pc': self}
+            event = pg.event.Event(BattleEvent, args_dict)
             pg.event.post(event)
 
 class BaseItem:

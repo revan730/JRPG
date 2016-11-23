@@ -3,9 +3,10 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
-from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent, ActionSelectedEvent, NPCSelectedEvent, CharacterKOEvent
+from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent, BattleEvent, MenuQuitEvent
+from Events import BattleEnum as Battle
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
-from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow, WizardWindow, PartyInfoWindow, NPCInfoWindow, SelectActionWindow
+from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow, WizardWindow, PartyInfoWindow, NPCInfoWindow, SelectActionWindow,SelectCharacterWindow
 from Player import PlayerParty, Camera, Teleport, ActionsEnum as Actions
 from NPC import Test
 from pytmx import load_pygame
@@ -192,7 +193,7 @@ class MainMenuState(GameState):
             self.quit = True
 
 
-class MapState(GameState):  # TODO: quit menu on menuquit event
+class MapState(GameState):
     def __init__(self, persistent):
         super().__init__(persistent)
         self.tiled_map = load_pygame(self.persist['map_file'])
@@ -213,14 +214,6 @@ class MapState(GameState):  # TODO: quit menu on menuquit event
     def update(self, dt):
         self.player_party.update(self.colliders, self.teleports, self.npcs)
         self.camera.update(self.player_party)
-        if self.pause_menu is not None:
-            if self.pause_menu.quit:
-                self.pause_menu = None
-                self.on_resume()
-        if self.menu is not None:
-            if self.menu.quit:
-                self.menu = None
-                self.on_resume()
 
     def draw(self, surface):
         if self.bg:
@@ -238,29 +231,40 @@ class MapState(GameState):  # TODO: quit menu on menuquit event
             self.toggle_menu(TraderWindow)
         elif self.pause_menu is None and event.type == EncounterEvent and event.npc == 'wizard':
             self.toggle_menu(WizardWindow)
+        elif event.type == MenuQuitEvent and event.window == PauseWindow:
+            self.toggle_pause_menu()
+        elif event.type == MenuQuitEvent and event.window is not SelectCharacterWindow:
+            self.toggle_menu(event.window)
         elif event.type == EncounterEvent and event.npc == 'enemy':
             self.enter_battle(event)
         elif self.pause_menu is None and self.menu is None:  # Handle player control only if menu is not active
-            if event.type == pg.KEYDOWN and event.key == pg.K_w:
-                self.player_party.up = True
-            elif event.type == pg.KEYUP and event.key == pg.K_w:
-                self.player_party.up = False
-            elif event.type == pg.KEYDOWN and event.key == pg.K_s:
-                self.player_party.down = True
-            elif event.type == pg.KEYUP and event.key == pg.K_s:
-                self.player_party.down = False
-            elif event.type == pg.KEYDOWN and event.key == pg.K_a:
-                self.player_party.left = True
-            elif event.type == pg.KEYUP and event.key == pg.K_a:
-                self.player_party.left = False
-            elif event.type == pg.KEYDOWN and event.key == pg.K_d:
-                self.player_party.right = True
-            elif event.type == pg.KEYUP and event.key == pg.K_d:
-                self.player_party.right = False
+            self.player_control(event)
         elif self.pause_menu is not None and event.type == pg.KEYDOWN:  # Let the pause menu handle input first
             self.pause_menu.update(event.key)
         elif self.menu is not None and event.type == pg.KEYDOWN:
             self.menu.update(event.key)
+
+    def player_control(self, event):
+        """
+        Handle key press events related to player control
+        :param event: pygame KEYDOWN or KEYUP event
+        """
+        if event.type == pg.KEYDOWN and event.key == pg.K_w:
+            self.player_party.up = True
+        elif event.type == pg.KEYUP and event.key == pg.K_w:
+                self.player_party.up = False
+        elif event.type == pg.KEYDOWN and event.key == pg.K_s:
+            self.player_party.down = True
+        elif event.type == pg.KEYUP and event.key == pg.K_s:
+            self.player_party.down = False
+        elif event.type == pg.KEYDOWN and event.key == pg.K_a:
+            self.player_party.left = True
+        elif event.type == pg.KEYUP and event.key == pg.K_a:
+            self.player_party.left = False
+        elif event.type == pg.KEYDOWN and event.key == pg.K_d:
+            self.player_party.right = True
+        elif event.type == pg.KEYUP and event.key == pg.K_d:
+            self.player_party.right = False
 
     def toggle_pause_menu(self):
         if self.pause_menu is None:
@@ -492,7 +496,6 @@ class BattleState(GameState):
     def load_sprites(self):
         """
         Loads sprites of player and npc characters and places them on screen, appends to sprites list
-        :return:
         """
         helper = SpritesHelper()
         image = pg.image.load(helper.get_bg(self.persist['bg']))
@@ -540,12 +543,12 @@ class BattleState(GameState):
 
     def get_event(self, event):
         super().get_event(event)
-        if event.type == ActionSelectedEvent:
+        if event.type == BattleEvent and event.sub == Battle.ActionSelected:
             self.dialog = None
             self.take_action(event.action)
-        if event.type == NPCSelectedEvent:
+        if event.type == BattleEvent and event.sub == Battle.NPCSelected:
             self.apply_action(event.npc)
-        if event.type == CharacterKOEvent:
+        if event.type == BattleEvent and event.sub == Battle.CharacterKO:
             # TODO: Remove from NPC list if NPC,red highlight if PC
             pass
         if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:  # Handle pause menu (de)activation
@@ -601,8 +604,7 @@ class BattleState(GameState):
     def take_action(self, action):  # TODO: Implemented 1 / 4
         """
         Set action target selection state for specified action
-        :param action:
-        :return:
+        :param action:  Action enum
         """
         if action == Actions.Attack:
             self.last_action = action
@@ -613,7 +615,6 @@ class BattleState(GameState):
         """
         Apply action on selected target
         :param npc: target npc
-        :return:
         """
         if self.last_action == Actions.Attack:
             dmg = self.current_character.DMG
@@ -625,7 +626,10 @@ class BattleState(GameState):
         self.last_action = None
 
 
-    def call_ai(self):  # TODO: Implement
+    def call_ai(self):  # TODO: make pause after decision
+        """
+        Call current NPC's AI function
+        """
         self.current_character.decide(self.player_party, self.npc_party)
         for i in self.windows:
             i.update_items()

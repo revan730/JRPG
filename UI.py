@@ -7,7 +7,7 @@ from ResourceHelpers import StringsHelper
 from Player import Usable, Armor, Weapon, Spell
 from Player import CharacterEnum as character
 from Player import ActionsEnum as actions
-from Events import ActionSelectedEvent, NPCSelectedEvent
+from Events import MenuQuitEvent, BattleEvent, BattleEnum as Battle
 
 LBL_BLUE = '#00E6E6'
 LBL_WHITE = 'white'
@@ -189,10 +189,10 @@ class Window:
         self.y = y
         self.width = width
         self.height = height
-        self.quit = False
         self.bg = pg.Surface((width, height))
         self.bg.fill(pg.Color('#000060'))
         self.drawables = []
+        self.quit = False
         self.dialog = None
 
     def draw(self, surface):
@@ -204,7 +204,12 @@ class Window:
 
     def update(self, key):
         if key == pg.K_q:
-            self.quit = True
+            self.close()
+
+    def close(self):
+        args_dict = {'window': self.__class__}
+        event = pg.event.Event(MenuQuitEvent, args_dict)
+        pg.event.post(event)
 
     def create_message(self, msg):
         self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
@@ -264,8 +269,9 @@ class SelectCharacterWindow(Window, Menu):  # TODO: Raise event on selection.Ref
             surface.blit(i.image, i.rect)
 
     def update(self, key):
-        super(SelectCharacterWindow, self).update(key)
-        Menu.update(self, key)
+       if key == pg.K_q:  # Can't be handled by super class, or else whole inventory window will close.Such a shitty feature
+           self.quit = True
+       Menu.update(self, key)
 
     def choose_item(self):
         self.selected = self.party[self.index]
@@ -309,8 +315,8 @@ class SelectActionWindow(Window, Menu):
         Menu.update(self, key)
 
     def choose_item(self):
-        args_dict = {'action': actions(self.index)}
-        event = pg.event.Event(ActionSelectedEvent, args_dict)
+        args_dict = {'sub': Battle.ActionSelected,'action': actions(self.index)}
+        event = pg.event.Event(BattleEvent, args_dict)
         pg.event.post(event)
 
 
@@ -348,7 +354,7 @@ class PauseWindow(Window, Menu):
 
     def choose_item(self):
         if self.index == 0:
-            self.quit = True
+            self.close()
         elif self.index == 1:
             quit_event = pg.event.Event(pg.QUIT)
             pg.event.post(quit_event)
@@ -568,7 +574,7 @@ class TraderWindow(Window, Menu):
                 self.dialog = None
         else:
             if key == pg.K_q:
-                self.quit = True
+                self.close()
                 self.party.set_pos(self.party.rect.x, self.party.rect.y + 5)
             if key == pg.K_a or key == pg.K_d or key == pg.K_LEFT or key == pg.K_RIGHT:
                 self.switch_state()
@@ -686,7 +692,7 @@ class WizardWindow(Window, Menu):
                 self.dialog = None
         else:
             if key == pg.K_q:
-                self.quit = True
+                self.close()
                 self.party.set_pos(self.party.rect.x, self.party.rect.y + 5)
             else:
                 super(WizardWindow, self).update(key)
@@ -781,8 +787,8 @@ class NPCInfoWindow(PartyInfoWindow):
 
     def choose_item(self):
         #  TODO: Raise NPCSelectedEvent
-        args_dict = {'npc': self.party[self.index]}
-        event = pg.event.Event(NPCSelectedEvent, args_dict)
+        args_dict = {'sub': Battle.NPCSelected, 'npc': self.party[self.index]}
+        event = pg.event.Event(BattleEvent, args_dict)
         pg.event.post(event)
 
     def enable(self):
