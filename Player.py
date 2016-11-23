@@ -402,9 +402,9 @@ class BaseMember:
         self.DUR_INC = 0
         self.hp_multiplier = 0
         self.mp_multiplier = 0
-        self.defence_multiplier = 0
         self.dmg_multiplier = 0
         self.exp_multiplier = 0
+        self.base_evs = 0.05  # Base chance of attack evasion
         self._res_name = None
 
     def add_exp(self, exp):
@@ -440,16 +440,17 @@ class BaseMember:
         self.recalculate_stats()
 
     def recalculate_stats(self):
-        self.MAX_HP = self.DUR * self.hp_multiplier  # Warrior's starting heals points at level 1
+        self.MAX_HP = self.DUR * self.hp_multiplier  # Maximal health points
         self.HP = self.MAX_HP  # Current HP, always regenerates to maximum when not in battle
-        self.MAX_MP = self.INT * self.mp_multiplier  # Warrior's starting mana points, he doesn't have much because he's not a magic-oriented class
-        self.MP = self.MAX_MP  # Also regenerates after battle. Warrior only has some minor skills which require MP to limit number of their usage
-        self.DMG = self.STR * self.dmg_multiplier  # Starting physical damage
-        self.MAX_DEF = self.DEX * self.defence_multiplier  # Starting defence (affects only physical damage)
+        self.MAX_MP = self.INT * self.mp_multiplier  # Maximal mana points
+        self.MP = self.MAX_MP  # Also regenerates after battle
+        self.DMG = self.STR * self.dmg_multiplier  # Physical damage
+        self.DEF = self.armor.defence  # Damage points consumed by armor
+        self.EVS = self.base_evs * self.DEX / 10 # Evasion chance
 
     def get_attributes(self):
         attrs = {'hp': self.HP, 'max_hp': self.MAX_HP, 'mp': self.MP, 'max_mp': self.MAX_MP, 'str': self.STR, 'int': self.INT, 'dex': self.DEX, 'dur': self.DUR,
-                'exp': self.EXP, 'lvl': self.LVL, 'dmg': self.DMG, 'def': self.MAX_DEF}
+                'exp': self.EXP, 'lvl': self.LVL, 'dmg': self.DMG, 'def': self.DEF, 'evs': '{}%'.format(self.EVS * 100)}
         return attrs
 
     def get_worn_items(self):
@@ -473,22 +474,30 @@ class BaseMember:
 
     def apply_damage(self, dmg):
         """
-        Apply physical damage to party member.Lowered by armor rating
-        :param dmg:
-        :return:
+        Apply physical damage to party member.Lowered by armor rating or dodged completely
+        :param dmg: int - damage dealt
         """
+        if rand.random() < self.EVS:  # Damage was dodged
+            self.raise_event(Battle.DamageDodged)
+        else:
+            damage = dmg - self.DEF
+            if damage <= 0:
+                damage = 1  # To make sure that armor can't consume all damage - that's what evasion is for
+            if damage < self.HP:
+                self.HP -= damage
+            else:  # damage is enough to knock out
+                self.HP = 0
+                self.KO = True
+                self.raise_event(Battle.CharacterKO)
 
-        damage = dmg  # TODO: CRITICAL - Damage taken is influenced only by armor.Implement evasion, influenced by dexterity
-        if damage < 0:
-            pass  # TODO: raise event to define that damage was ineffective
-        elif damage < self.HP:
-            self.HP -= damage
-        else:  # damage is enough to knock out
-            self.HP = 0
-            self.KO = True
-            args_dict = {'sub': Battle.CharacterKO, 'pc': self}
-            event = pg.event.Event(BattleEvent, args_dict)
-            pg.event.post(event)
+    def raise_event(self, subevent):
+        """
+        Raise player related event (Knocked out, damage dodged etc.)
+        :param subevent: BattleEnum - related event
+        """
+        args_dict = {'sub': subevent, 'pc': self}
+        event = pg.event.Event(BattleEvent, args_dict)
+        pg.event.post(event)
 
 class BaseItem:
     """
@@ -597,7 +606,7 @@ class Warrior(BaseMember):
         self.name = 'Cid'
         self.INT = 10  # Intelligence, influences mana points
         self.STR = 10  # Strength, influences physical damage
-        self.DEX = 15  # Dexterity, influences pure damage taken from physical attacks
+        self.DEX = 15  # Dexterity, influences attack evasion chance
         self.DUR = 15  # Durability, influences maximal heath
         self.hp_multiplier = 2  # 2 HP points for each durability point
         self.mp_multiplier = 1  # Only 1 MP for each intelligence point

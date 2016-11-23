@@ -7,8 +7,8 @@ from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent
 from Events import BattleEnum as Battle
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
 from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow, WizardWindow, PartyInfoWindow, NPCInfoWindow, SelectActionWindow,SelectCharacterWindow
-from Player import PlayerParty, Camera, Teleport, ActionsEnum as Actions
-from NPC import Test
+from Player import PlayerParty, Camera, Teleport, ActionsEnum as Actions, BaseMember
+from NPC import Test, BaseNPC
 from pytmx import load_pygame
 
 
@@ -550,6 +550,8 @@ class BattleState(GameState):
             self.apply_action(event.npc)
         if event.type == BattleEvent and event.sub == Battle.CharacterKO:
             # TODO: Remove from NPC list if NPC,red highlight if PC
+            self.knock_out(event.pc)
+        if event.type == BattleEvent and event.sub == Battle.DamageDodged:  # TODO: Handle in status bar
             pass
         if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:  # Handle pause menu (de)activation
             self.toggle_pause_menu()
@@ -633,3 +635,13 @@ class BattleState(GameState):
         self.current_character.decide(self.player_party, self.npc_party)
         for i in self.windows:
             i.update_items()
+
+    def knock_out(self, character):
+        """
+        Remove character from battle if it's NPC, block in UI and change sprite if player
+        :param character: BaseNPC or BaseMember instance
+        """
+        if isinstance(character, BaseNPC):
+            pass
+        elif isinstance(character, BaseMember):
+            pass

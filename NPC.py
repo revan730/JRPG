@@ -4,6 +4,8 @@
 
 import pygame as pg
 from ResourceHelpers import SpritesHelper
+from Events import BattleEnum as Battle
+from Events import BattleEvent
 
 
 class BaseNPC(pg.sprite.Sprite):
@@ -46,7 +48,10 @@ class BaseNPC(pg.sprite.Sprite):
     def apply_damage(self, dmg):
         if dmg >= self.HP:
             self.HP = 0
-            # TODO: Raise CharacterKOEvent
+            self.KO = True
+            args_dict = {'sub': Battle.CharacterKO, 'pc': self}
+            event = pg.event.Event(BattleEvent, args_dict)
+            pg.event.post(event)
         else:
             self.HP -= dmg
 

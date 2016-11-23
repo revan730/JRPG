@@ -21,3 +21,4 @@ class BattleEnum(Enum):
     ActionSelected = 0  # Raised when user selects action for character in battle
     NPCSelected = 1
     CharacterKO = 2  # Raised when (non) player character is knocked out
+    DamageDodged = 3  # Raised when damage dealt to player is dodged

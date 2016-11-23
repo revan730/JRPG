@@ -774,7 +774,7 @@ class PartyInfoWindow(Window, Menu):
         for i in self.menu_items:
             i.update()
 
-class NPCInfoWindow(PartyInfoWindow):
+class NPCInfoWindow(PartyInfoWindow):  # TODO: Update menu items (after npc being KO, etc.)
     """
     Window which displays NPC party's members
     """
