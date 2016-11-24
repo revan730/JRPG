@@ -12,6 +12,7 @@ from Events import MenuQuitEvent, BattleEvent, BattleEnum as Battle
 LBL_BLUE = '#00E6E6'
 LBL_WHITE = 'white'
 LBL_GREEN = 'green'
+LBL_RED = 'red'
 
 class MenuItem:
     """
@@ -101,19 +102,26 @@ class MemberInfoItem(InfoItem):
 
     def __init__(self, member, font, size, x, y, padding):
         self.active = False
+        self.knocked_out = False  # Set color to red if knocked out
         super().__init__(member.name, None, font, size, x, y, padding)
         self.member = member
         self.label_color = LBL_WHITE
         self.active_color = LBL_GREEN
+        self.knocked_color = LBL_RED
         self.update()
 
     def update(self):
         attrs = self.member.get_attributes()
         hp = attrs['hp']
-        max_hp = attrs['max_hp']
-        mp = attrs['mp']
-        max_mp = attrs['max_mp']
-        value = '{}/{} HP       {}/{} MP'.format(hp, max_hp, mp, max_mp)
+        if hp > 0:
+            self.knocked_out = False
+            max_hp = attrs['max_hp']
+            mp = attrs['mp']
+            max_mp = attrs['max_mp']
+            value = '{}/{} HP       {}/{} MP'.format(hp, max_hp, mp, max_mp)
+        else:
+            self.knocked_out = True
+            value = 'KO'
         self.set_value(value)
 
     def set_value(self, value):
@@ -124,16 +132,16 @@ class MemberInfoItem(InfoItem):
             self.set_inactive()
 
     def set_active(self):
-        self.label_text = self.font.render(self.caption, True, pg.Color(self.active_color))
+        self.label_text = self.font.render(self.caption, True, pg.Color(self.knocked_color if self.knocked_out else self.active_color))
         self.label_rect = self.label_text.get_rect(x=self.x, y=self.y)
-        self.value_text = self.font.render(self.value, True, pg.Color(self.active_color))
+        self.value_text = self.font.render(self.value, True, pg.Color(self.knocked_color if self.knocked_out else self.active_color))
         self.value_rect = self.value_text.get_rect(center=(self.x + self.padding, self.y + 5))
         self.active = True
 
     def set_inactive(self):
         self.label_text = self.font.render(self.caption, True, pg.Color(self.label_color))
         self.label_rect = self.label_text.get_rect(x=self.x, y=self.y)
-        self.value_text = self.font.render(self.value, True, pg.Color(self.value_color))
+        self.value_text = self.font.render(self.value, True, pg.Color(self.knocked_color if self.knocked_out else self.value_color))
         self.value_rect = self.value_text.get_rect(center=(self.x + self.padding, self.y + 5))
         self.active = False
 
@@ -737,7 +745,7 @@ class WizardWindow(Window, Menu):
             self.create_message('Not enough gold')
 
 
-class PartyInfoWindow(Window, Menu):
+class PartyInfoWindow(Window, Menu):  # TODO:Highlight current character
     """
     Window which displays info about party members (HP, MP) in battle
     """
@@ -774,6 +782,24 @@ class PartyInfoWindow(Window, Menu):
         for i in self.menu_items:
             i.update()
 
+    def enable(self):
+        """
+        Enable window's menu
+        """
+        self.index = 0
+        self.set_cursor()
+
+    def disable(self):
+        self.menu_items[self.index].set_inactive()
+
+    def set_current(self,character):
+        """
+        Highlight current character (to see which character is taking action)
+        :param character: BaseMember object
+        """
+        self.index = self.party.get_index(character)
+        self.set_cursor()
+
 class NPCInfoWindow(PartyInfoWindow):  # TODO: Update menu items (after npc being KO, etc.)
     """
     Window which displays NPC party's members
@@ -791,13 +817,9 @@ class NPCInfoWindow(PartyInfoWindow):  # TODO: Update menu items (after npc bein
         event = pg.event.Event(BattleEvent, args_dict)
         pg.event.post(event)
 
-    def enable(self):
+    def refresh_items(self):
         """
-        Enable window's menu
-        :return:
+        Called when NPC is knocked out
         """
-        self.index = 0
-        self.set_cursor()
-
-    def disable(self):
-        self.menu_items[self.index].set_inactive()
+        self.menu_items = []
+        self.add_info_items()

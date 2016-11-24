@@ -532,7 +532,9 @@ class BattleState(GameState):
 
     def draw(self, surface):
         surface.blit(*self.bg)
-        for i in self.sprites:
+        for i in self.npc_party:
+            surface.blit(i.image, i.rect)
+        for i in self.player_party.get_battle_sprites():
             surface.blit(*i)
         for i in self.windows:
             i.draw(surface)
@@ -576,9 +578,15 @@ class BattleState(GameState):
 
     def choose_player_character(self):
         try:
-            self.current_character = next(self.player_party)
+            self.party_window.disable()
+            # self.current_character = next(self.player_party)
+            self.current_character = self.player_party.get_next_alive(self.current_character)
+            if self.current_character.KO:
+                self.choose_player_character() # to make sure it doesn't choose KOed player
+            self.party_window.set_current(self.current_character)
             self.call_action_menu()
         except StopIteration:
+            self.party_window.disable()
             self.npc_turn = True
             self.next_turn()
 
@@ -589,6 +597,7 @@ class BattleState(GameState):
             self.next_turn()
         except StopIteration:
             self.npc_turn = False
+            self.current_character = None
             self.npc_iter = iter(self.npc_party)
             self.next_turn()
 
@@ -642,6 +651,10 @@ class BattleState(GameState):
         :param character: BaseNPC or BaseMember instance
         """
         if isinstance(character, BaseNPC):
-            pass
+            self.npc_party.remove(character)
+            self.npc_window.refresh_items()
+            if len(self.npc_party) == 0:  # TODO: If all enemies are defeated, raise win event
+                pass
         elif isinstance(character, BaseMember):
-            pass
+            if len(self.player_party.get_alive()) == 0:
+                pass

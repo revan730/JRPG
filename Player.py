@@ -36,6 +36,17 @@ class ActionsEnum(Enum):
     Flee = 3
 
 
+class KOError(Exception):
+    """
+    Raised when KOed character gets damage
+    """
+
+    def __init__(self, character):
+        self.value = '{} is knocked out and tried to get damage'.format(character.name)
+
+    def __str__(self):
+        return repr(self.value)
+
 class PlayerParty(pg.sprite.Sprite):
     """
     Class used to represent player characters' party on world and location map
@@ -277,7 +288,7 @@ class PlayerParty(pg.sprite.Sprite):
     def draw(self, surface):
         surface.blit(self.image, self.rect)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item):  # TODO: This iterator is total shite
         if item == 0:
             return self.warrior
         elif item == 1:
@@ -302,6 +313,60 @@ class PlayerParty(pg.sprite.Sprite):
             return item
         except IndexError:
             self.iter_index = 0
+            raise StopIteration
+
+    def get_index(self, character):
+        """
+        Get index of character in party order
+        :param character: BaseMember object
+        :return: int - index
+        """
+        if character is self.warrior:
+            return 0
+        elif character is self.mage:
+            return 1
+        elif character is self.healer:
+            return 2
+        elif character is self.ranger:
+            return 3
+        else:
+            raise TypeError('parameter is not a BaseMember instance')
+
+    def get_battle_sprites(self):
+        """
+        Returns list of tuples with battle sprites of each not KOed member
+        :return: list of tuples
+        """
+        sprites = []
+        alive = self.get_alive()
+        for i in alive:
+            pair = (i.battle_image, i.battle_rect)
+            sprites.append(pair)
+
+        return sprites
+
+    def get_alive(self):
+        """
+        Returns list of not KOed characters
+        :return: list of BaseMember objects
+        """
+        return [i for i in self if not i.KO]
+
+    def get_next_alive(self, prev):
+        """
+        Returns next alive party member,which stands in order after prev parameter.
+        Raises StopIteration if prev was last in order  or there are no more alive members
+        :return: BaseMember object
+        """
+        if prev is None:
+            return self.warrior
+        elif prev is self.warrior:
+            return self.mage
+        elif prev is self.mage:
+            return self.healer
+        elif prev is self.healer:
+            return self.ranger
+        elif prev is self.ranger:
             raise StopIteration
 
 
@@ -477,18 +542,21 @@ class BaseMember:
         Apply physical damage to party member.Lowered by armor rating or dodged completely
         :param dmg: int - damage dealt
         """
-        if rand.random() < self.EVS:  # Damage was dodged
-            self.raise_event(Battle.DamageDodged)
+        if not self.KO:
+            if rand.random() < self.EVS:  # Damage was dodged
+                self.raise_event(Battle.DamageDodged)
+            else:
+                damage = dmg - self.DEF
+                if damage <= 0:
+                    damage = 1  # To make sure that armor can't consume all damage - that's what evasion is for
+                if damage < self.HP:
+                    self.HP -= damage
+                else:  # damage is enough to knock out
+                    self.HP = 0
+                    self.KO = True
+                    self.raise_event(Battle.CharacterKO)
         else:
-            damage = dmg - self.DEF
-            if damage <= 0:
-                damage = 1  # To make sure that armor can't consume all damage - that's what evasion is for
-            if damage < self.HP:
-                self.HP -= damage
-            else:  # damage is enough to knock out
-                self.HP = 0
-                self.KO = True
-                self.raise_event(Battle.CharacterKO)
+            raise KOError(self)
 
     def raise_event(self, subevent):
         """

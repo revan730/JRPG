@@ -63,9 +63,9 @@ class Test(BaseNPC):
 
     def __init__(self):
         super().__init__()
-        self.HP = self.MAX_HP =  10
+        self.HP = self.MAX_HP =  100
         self.MP = self.MAX_MP = 5
-        self.DMG = 2
+        self.DMG = 15
         self.name = 'Test NPC'
 
     def load_sprites(self):
@@ -74,4 +74,4 @@ class Test(BaseNPC):
         self.rect = self.image.get_rect()
 
     def decide(self, player_party, npc_party):
-        player_party.warrior.apply_damage(self.DMG)
+        player_party.get_alive()[0].apply_damage(self.DMG)
