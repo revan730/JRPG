@@ -7,6 +7,7 @@ import pygame as pg
 from ResourceHelpers import SettingsHelper as Settings, SpritesHelper as Sprites
 from Events import TeleportEvent, EncounterEvent, BattleEvent
 from Events import BattleEnum as Battle
+import Items
 import random as rand
 import pyganim
 
@@ -47,7 +48,7 @@ class KOError(Exception):
     def __str__(self):
         return repr(self.value)
 
-class PlayerParty(pg.sprite.Sprite):
+class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry\leave handling
     """
     Class used to represent player characters' party on world and location map
     """
@@ -70,11 +71,13 @@ class PlayerParty(pg.sprite.Sprite):
         self.set_animations()
         self.current_anim = None
         self.paused = False
-        item = Usable('Phoenix Down', 300, 'Ressurects fallen party members')
-        sitem = Weapon('BFG', 228, 228, 'Instant kill')
+        item = Items.Usable('Phoenix Down', 300, 'Ressurects fallen party members')
+        sitem = Items.Weapon('BFG', 228, 228, 'Instant kill')
         self.inventory = [item, sitem]  # content of common inventory
         self.gold = 20  # Starting gold amount
         self.create_party()
+        self.current_alive = self.get_alive()
+        self.alive_iter = iter(self.current_alive)
 
     def create_party(self):
         """
@@ -251,7 +254,6 @@ class PlayerParty(pg.sprite.Sprite):
     def scale_up(self):
         """
         Scale player party sprite and rect two times (for local map state)
-        :return:
         """
         self.rect.width *= 2
         self.rect.height *= 2
@@ -268,10 +270,17 @@ class PlayerParty(pg.sprite.Sprite):
         """
         Add items to inventory
         :param items: items to add
-        :return:
         """
         items = list(items)
         self.inventory.extend(items)
+
+    def add_exp(self, exp):
+        """
+        Add experience to all party members
+        :param exp: int - added experience
+        """
+        for i in self:
+            i.add_exp(exp)
 
     def add_spells(self, *spells):
         spells = list(spells)
@@ -352,21 +361,20 @@ class PlayerParty(pg.sprite.Sprite):
         """
         return [i for i in self if not i.KO]
 
-    def get_next_alive(self, prev):
+    def get_next_alive(self):  # TODO: TOTAL PIECE OF SHIT!!!
         """
         Returns next alive party member,which stands in order after prev parameter.
-        Raises StopIteration if prev was last in order  or there are no more alive members
+        Raises StopIteration if prev was last in order or there are no more alive members
         :return: BaseMember object
         """
-        if prev is None:
-            return self.warrior
-        elif prev is self.warrior:
-            return self.mage
-        elif prev is self.mage:
-            return self.healer
-        elif prev is self.healer:
-            return self.ranger
-        elif prev is self.ranger:
+        if len(self.current_alive) != len(self.get_alive()):
+            self.current_alive = self.get_alive()
+            self.alive_iter = iter(self.current_alive)
+        try:
+            return next(self.alive_iter)
+        except StopIteration:
+            self.current_alive = self.get_alive()
+            self.alive_iter = iter(self.current_alive)
             raise StopIteration
 
 
@@ -452,8 +460,8 @@ class BaseMember:
         self.LVL = 1  # Starting level is 1
         self.MAX_LVL = 25
         self.spells = []  # List of spell objects which Warrior can cast
-        self.armor = Armor('Coat', 2, 10, 'coat')  # Armor item
-        self.weapon = Weapon('Knife', 2, 8, 'knife')  # Weapon item
+        self.armor = Items.Armor('Coat', 2, 10, 'coat')  # Armor item
+        self.weapon = Items.Weapon('Knife', 2, 8, 'knife')  # Weapon item
         self.KO = False  # Knocked out
         self.EXP = 0  # Starting experience
         self.UP_EXP = 0
@@ -566,69 +574,6 @@ class BaseMember:
         args_dict = {'sub': subevent, 'pc': self}
         event = pg.event.Event(BattleEvent, args_dict)
         pg.event.post(event)
-
-class BaseItem:
-    """
-    Represents basic inventory item class
-    """
-
-    def __init__(self, name, cost, info):
-        self.name = name
-        self.cost = int(cost)
-        self.info = info
-
-
-class Weapon(BaseItem):
-    """
-    Represents weapon item class for inventory
-    """
-
-    def __init__(self, name, dmg, cost, info):
-        """
-
-        :param name: string - weapon name
-        :param dmg: int - weapon damage (will be added to owner's physical damage)
-        :param cost: int - weapon cost
-        :return:
-        """
-        super().__init__(name, cost, info)
-        self.dmg = dmg
-
-    def __str__(self):
-        return '{} (+{})'.format(self.name, self.dmg)
-
-
-class Armor(BaseItem):
-    """
-    Represents armor item class for inventory
-    """
-
-    def __init__(self, name, defence, cost, info):
-        super().__init__(name, cost, info)
-        self.defence = defence
-
-    def __str__(self):
-        return '{} (+{})'.format(self.name, self.defence)
-
-
-class Usable(BaseItem):
-    """
-    Represents usable item like potion, which applies some effect to user
-    """
-
-    def __init__(self, name, cost, info):
-        super().__init__(name, cost, info)
-
-    def __str__(self):
-        return '{} ({} G)'.format(self.name, self.cost)
-
-    def apply_effect(self, target):
-        """
-        apply item effect on it's target
-        :param target: player or enemy party member
-        :return:
-        """
-        pass
 
 
 class Spell:

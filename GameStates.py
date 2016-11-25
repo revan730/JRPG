@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
-from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent, BattleEvent, MenuQuitEvent
+from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent, BattleEvent, MenuQuitEvent, StackResetEvent
 from Events import BattleEnum as Battle
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
 from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow, WizardWindow, PartyInfoWindow, NPCInfoWindow, SelectActionWindow,SelectCharacterWindow
@@ -30,6 +30,13 @@ class StateStack:
 
     def size(self):
         return len(self.states)
+
+    def reset(self):
+        """
+        Removes all states but first
+        """
+        while self.size() > 1:
+            self.pop()
 
     def set_persistent(self, persistent):
         self.peek().persistent = persistent
@@ -94,6 +101,13 @@ class GameState:
         event_args = {'state': state, 'args': args_dict}
         call_event = pg.event.Event(StateCallEvent, event_args)
         pg.event.post(call_event)
+
+    def reset_states(self):
+        """
+        Called to clear all states from stack but first one
+        """
+        event = pg.event.Event(StackResetEvent, {})
+        pg.event.post(event)
 
     def on_return(self, callback):
         """
@@ -444,8 +458,13 @@ class LocalMapState(MapState):
             self.tiled_map = load_pygame(tp.map_f)
             self.player_party.set_pos(tp.pos_x, tp.pos_y)
 
+    def on_return(self, callback):
+        self.player_party.add_items(callback['loot'])
+        self.player_party.add_exp(callback['exp'])
+        self.player_party.gold += callback['gold']
 
-class BattleState(GameState):
+
+class BattleState(GameState):  # TODO: Turns must be handled as events
     """
     Game state in which battle with NPC's is handled
     """
@@ -462,11 +481,15 @@ class BattleState(GameState):
         self.npc_turn = False  #  Select character from npc party if true
         self.current_character = None
         self.current_window = None
+        self.loot = []
+        self.gold = 0  # Total amount of gold party gets for battle
+        self.experience = 0  # Total amount of experience every member get for battle
         self.sprites = []
         self.windows = []
         self.dialog = None  # Action select dialog
         self.last_action = None  # Save last action to know what to do with selected NPC
         self.load_npc()
+        self.calculate_loot()
         self.load_sprites()
         self.set_ui()
         self.choose_player_character()
@@ -492,6 +515,15 @@ class BattleState(GameState):
 
         self.npc_iter = iter(self.npc_party)
 
+    def calculate_loot(self):
+        """
+        Calculate loot and experince for npc's
+        """
+
+        for i in self.npc_party:
+            self.loot.extend(i.get_loot())
+            self.gold += i.gold
+            self.experience += i.EXP
 
     def load_sprites(self):
         """
@@ -580,9 +612,11 @@ class BattleState(GameState):
         try:
             self.party_window.disable()
             # self.current_character = next(self.player_party)
-            self.current_character = self.player_party.get_next_alive(self.current_character)
-            if self.current_character.KO:
-                self.choose_player_character() # to make sure it doesn't choose KOed player
+            self.current_character = self.player_party.get_next_alive()
+            if self.current_character is None:
+                self.game_over()  # No more alive party members
+            # if self.current_character.KO:
+            #    self.choose_player_character() # to make sure it doesn't choose KOed player
             self.party_window.set_current(self.current_character)
             self.call_action_menu()
         except StopIteration:
@@ -654,7 +688,20 @@ class BattleState(GameState):
             self.npc_party.remove(character)
             self.npc_window.refresh_items()
             if len(self.npc_party) == 0:  # TODO: If all enemies are defeated, raise win event
-                pass
+                self.win_battle()
         elif isinstance(character, BaseMember):
             if len(self.player_party.get_alive()) == 0:
-                pass
+                self.game_over()
+
+    def game_over(self):  # TODO: Game over screen
+        """
+        Called when player loses the battle
+        """
+        self.reset_states()
+
+    def win_battle(self):
+        """
+        Called when all NPC's are defeated.Returns to previous map state
+        """
+        args_dict = {'loot': self.loot, 'gold': self.gold, 'exp': self.experience}
+        self.exit(args_dict)

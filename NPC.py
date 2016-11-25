@@ -6,6 +6,8 @@ import pygame as pg
 from ResourceHelpers import SpritesHelper
 from Events import BattleEnum as Battle
 from Events import BattleEvent
+import random as rand
+import Items
 
 
 class BaseNPC(pg.sprite.Sprite):
@@ -22,7 +24,10 @@ class BaseNPC(pg.sprite.Sprite):
         self.MP = 0
         self.MAX_MP = 0
         self.DMG = 0
+        self._loot = []  # list of Item,Drop Rate dicts
         self.load_sprites()
+        self.EXP = 0  # Experience points which every player character gets for defeating this NPC
+        self.gold = 0  # Gold for defeating this NPC
 
     def decide(self, player_party, npc_party):
         """
@@ -55,23 +60,41 @@ class BaseNPC(pg.sprite.Sprite):
         else:
             self.HP -= dmg
 
+    def get_loot(self):
+        """
+        Generate loot for this NPC
+        :return: list of Item objects
+        """
+        loot = []
+        chance = rand.random()
+        for i in self._loot:
+            if chance >= i['rate']:
+                loot.append(i['item'])
+
+        return loot
+
 
 class Test(BaseNPC):
     """
     Test NPC
     """
-
     def __init__(self):
         super().__init__()
-        self.HP = self.MAX_HP =  100
+        self.HP = self.MAX_HP = 100
         self.MP = self.MAX_MP = 5
-        self.DMG = 15
+        self.DMG = 50
+        self.EXP = 15
+        self.gold = 30
         self.name = 'Test NPC'
+        self._loot = [{'item': Items.Armor('Iron Armor', 5, 30, 'Iron armor'), 'rate': 0.25}]
 
     def load_sprites(self):
         helper = SpritesHelper()
         self.image = pg.transform.scale(pg.image.load(helper.get_sprite('test','battle_idle')), (30, 38))
         self.rect = self.image.get_rect()
 
-    def decide(self, player_party, npc_party):
-        player_party.get_alive()[0].apply_damage(self.DMG)
+    def decide(self, player_party, npc_party):  # TODO: Make this method as a decorator for other possible actions.
+        # Should raise event when action is taken.Attempt to make several actions should also be handled
+        alive = player_party.get_alive()
+        if len(alive) > 0:
+            alive[0].apply_damage(self.DMG)

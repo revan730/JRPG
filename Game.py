@@ -35,6 +35,8 @@ class Game:
             elif event.type == evs.StateExitEvent:
                 self.state_stack.pop()
                 self.state_stack.send_callback(event.args)
+            elif event.type is evs.StackResetEvent:
+                self.state_stack.reset()
             else:
                 self.state_stack.get_event(event)
 

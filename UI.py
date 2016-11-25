@@ -4,7 +4,8 @@
 
 import pygame as pg
 from ResourceHelpers import StringsHelper
-from Player import Usable, Armor, Weapon, Spell
+from Player import Spell
+from Items import *
 from Player import CharacterEnum as character
 from Player import ActionsEnum as actions
 from Events import MenuQuitEvent, BattleEvent, BattleEnum as Battle
@@ -584,7 +585,7 @@ class TraderWindow(Window, Menu):
             if key == pg.K_q:
                 self.close()
                 self.party.set_pos(self.party.rect.x, self.party.rect.y + 5)
-            if key == pg.K_a or key == pg.K_d or key == pg.K_LEFT or key == pg.K_RIGHT:
+            elif key == pg.K_a or key == pg.K_d or key == pg.K_LEFT or key == pg.K_RIGHT:
                 self.switch_state()
             else:
                 super(TraderWindow, self).update(key)
