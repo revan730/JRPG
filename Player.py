@@ -58,7 +58,6 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
 
         :param x: party's start x coordinate
         :param y: party's start y coordinate
-        :return:
         """
         pg.sprite.Sprite.__init__(self)
         self.image = pg.Surface((P_WIDTH, P_HEIGHT))
@@ -82,12 +81,12 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
     def create_party(self):
         """
         Create party members for a new game
-        :return:
         """
         self.warrior = Warrior()
         self.mage = Mage()
         self.healer = Healer()
         self.ranger = Ranger()
+        self.members = {0: self.warrior, 1: self.mage, 2: self.healer, 3: self.ranger}
 
     def set_pos(self, x, y):
         self.rect.x = x
@@ -96,7 +95,6 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
     def set_animations(self):
         """
         Load and initialize animations for player actions
-        :return:
         """
         anim_delay = 0.15
         self.init_animations(anim_delay, *self.load_animations())
@@ -110,7 +108,6 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
         :param anim_left_f: tuple of left walk animation frame file paths
         :param anim_right_f: tuple of right walk animation frame file paths
         :param anim_up_f: tuple of up walk animation frame file paths
-        :return:
         """
         anim = []
         for a in anim_up_f:
@@ -196,7 +193,6 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
     def pause(self):
         """
         Stop player animation and movement (called on state pause)
-        :return:
         """
         self.left = self.right = self.up = self.down = False
         self.current_anim.pause()
@@ -205,7 +201,6 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
     def resume(self):
         """
         Resume player animation and movement
-        :return:
         """
         self.current_anim.play()
         self.paused = False
@@ -214,7 +209,6 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
         """
         Handles player party's collisions on x axis
         :param colliders: list of pygame rect objects to check collision on
-        :return:
         """
         for c in colliders:
             if self.rect.colliderect(c):
@@ -225,7 +219,6 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
         """
         Handles player party's collisions on x axis
         :param colliders: list of pygame rect objects to check collision on
-        :return:
         """
         for c in colliders:
             if self.rect.colliderect(c):
@@ -236,7 +229,6 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
         """
         Handles player party's collision on teleports,
         :param teleports: list of pygame rect object of teleport tiles to check on
-        :return:
         """
         for t in teleports:
             if self.rect.colliderect(t.rect):
@@ -284,27 +276,15 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
     def add_spells(self, *spells):
         spells = list(spells)
         for s in spells:
-            if s.char == CharacterEnum.Warrior:
-                self.warrior.add_spells(s)
-            elif s.char == CharacterEnum.Mage:
-                self.mage.add_spells(s)
-            elif s.char == CharacterEnum.Healer:
-                self.healer.add_spells(s)
-            elif s.char == CharacterEnum.Ranger:
-                self.ranger.add_spells(s)
+            if s.char.value in self.members.keys():
+                self.members[s.char.value].add_spells(s)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
 
     def __getitem__(self, item):
-        if item == 0:
-            return self.warrior
-        elif item == 1:
-            return self.mage
-        elif item == 2:
-            return self.healer
-        elif item == 3:
-            return self.ranger
+        if item in self.members.keys():
+            return self.members[item]
         else:
             raise IndexError
 
@@ -329,16 +309,11 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
         :param character: BaseMember object
         :return: int - index
         """
-        if character is self.warrior:
-            return 0
-        elif character is self.mage:
-            return 1
-        elif character is self.healer:
-            return 2
-        elif character is self.ranger:
-            return 3
-        else:
-            raise TypeError('parameter is not a BaseMember instance')
+        for key, val in self.members.items():
+            if character is val:
+                return key
+
+        raise TypeError('parameter is not a party member object')
 
     def get_battle_sprites(self):
         """
@@ -388,7 +363,6 @@ class Camera(object):
         :param camera_func: camera function used to configurate camera behavior
         :param width: width of camera's field of view
         :param heigth: height of camera's field of view
-        :return:
         """
         settings = Settings()
         self.screen_w = settings.get('screen_width', 800)
@@ -410,7 +384,6 @@ class Camera(object):
         """
         Called to update camera's posotion related to target
         :param target: camera's target to focus
-        :return:
         """
         self.state = self.camera_func(self.state, target.rect, (self.screen_w, self.screen_h))
 
@@ -441,7 +414,6 @@ class Teleport:
         :param y: player y coord on new location
         :param map_f: map file path
         :param world: world, either 'overworld' or 'localworld'
-        :return:
         """
         self.rect = rect
         self.pos_x = x
@@ -483,7 +455,6 @@ class BaseMember:
         """
         Called when member gets experience points
         :param exp: int value of achieved experience
-        :return:
         """
         self.EXP += exp
         if self.EXP >= self.UP_EXP:
@@ -492,7 +463,6 @@ class BaseMember:
     def lvl_up(self):
         """
         Called when member reaches maximum experience for current level.Counts new base stats values
-        :return:
         """
         if self.LVL < self.MAX_LVL:
             self.LVL += 1
@@ -588,7 +558,6 @@ class Spell:
         :param mp_cost: int - mana cost
         :param info: string - spell description
         :param character: CharacterEnum - determines which character can learn this spell
-        :return:
         """
         self.name = name
         self.cost = int(cost)
@@ -600,7 +569,6 @@ class Spell:
         """
         apply spell on it's target
         :param target: player or enemy party member
-        :return:
         """
         pass
 

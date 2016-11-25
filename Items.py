@@ -25,7 +25,6 @@ class Weapon(BaseItem):
         :param name: string - weapon name
         :param dmg: int - weapon damage (will be added to owner's physical damage)
         :param cost: int - weapon cost
-        :return:
         """
         super().__init__(name, cost, info)
         self.dmg = dmg
@@ -62,7 +61,6 @@ class Usable(BaseItem):
         """
         apply item effect on it's target
         :param target: player or enemy party member
-        :return:
         """
         pass
 

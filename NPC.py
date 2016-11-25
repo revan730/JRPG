@@ -42,14 +42,12 @@ class BaseNPC(pg.sprite.Sprite):
         Method which is called when npc must decide what to do on it's turn
         :param player_party: player party object
         :param npc_party: list of npc party members
-        :return:
         """
         pass
 
     def load_sprites(self):
         """
         Loads all sprite images
-        :return:
         """
         pass
 

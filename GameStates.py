@@ -45,7 +45,6 @@ class StateStack:
         """
         Call update method of current state
         :param dt: time since last frame
-        :return:
         """
 
         self.peek().update(dt)
@@ -54,7 +53,6 @@ class StateStack:
         """
         Gives one specific event for state to process
         :param event: event passed to game state
-        :return:
         """
         self.peek().get_event(event)
 
@@ -92,7 +90,6 @@ class GameState:
         """
         Called when state ends and game should return to previous state
         :param args_dict: dictionary of callback arguments,which will be received by previous state in stack
-        :return:
         """
         exit_event = pg.event.Event(StateExitEvent, {'state': '', 'args': args_dict})
         pg.event.post(exit_event)
@@ -113,7 +110,6 @@ class GameState:
         """
         Executed when called state was successfully ended
         :param callback: callback from called state (e.g. list of monster loot,new player coordinates)
-        :return:
         """
         pass
 
@@ -511,7 +507,6 @@ class BattleState(GameState):
     def load_npc(self):
         """
         Load npc party information
-        :return:
         """
         self.npc_party = []
 

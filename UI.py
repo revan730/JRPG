@@ -87,7 +87,6 @@ class InfoItem:
         """
         Set value for item
         :param value: string value
-        :return:
         """
         self.value = str(value)
         self.label_text = self.font.render(self.caption, True, pg.Color(self.label_color))
@@ -160,7 +159,6 @@ class Menu:
         """
         Update window state on key input event
         :param key: pygame key code
-        :return:
         """
         if key == pg.K_w or key == pg.K_UP:
             self.prev_item()
@@ -304,7 +302,7 @@ class SelectActionWindow(Window, Menu):
         font_size = 32
 
         x = self.x + self.width / 2
-         # padding = self.height / 2 + self.y - font_size   # starting padding for first item to be near window center
+        # starting padding for first item to be near window center
         padding = self.height / 2 + self.y - font_size
         y = padding
         ind = 0
@@ -678,7 +676,7 @@ class WizardWindow(Window, Menu):
         super().__init__(x, y, width, height)
         Menu.__init__(self)
         self.party = party
-        self.buy_items = [Spell("Ice Blast", 70, 5, "Deals 5 DMG to enemy", character.Mage)]
+        self.buy_items = [Spell("Ice Blast", 7, 5, "Deals 5 DMG to enemy", character.Mage)]
         self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
         self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
         self.load_items()
