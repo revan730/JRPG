@@ -247,7 +247,7 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
     def collide_npc(self, npcs):
         for n in npcs:
             if self.rect.colliderect(n['rect']):
-                event_args = {'npc': n['name'], 'party_members': n['party_members'], 'bg': n['bg']}
+                event_args = {'npc': n['name'], 'party_members': n['party_members'], 'bg': n['bg'], 'id': npcs.index(n)}
                 npc_event = pg.event.Event(EncounterEvent, event_args)
                 pg.event.post(npc_event)
 
@@ -266,12 +266,11 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
         self.rect.height = P_HEIGHT
         self.image = pg.transform.scale(self.image, (P_WIDTH, P_HEIGHT))
 
-    def add_items(self, *items):
+    def add_items(self, items):
         """
         Add items to inventory
-        :param items: items to add
+        :param items: list of items to add
         """
-        items = list(items)
         self.inventory.extend(items)
 
     def add_exp(self, exp):
@@ -297,7 +296,7 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
     def draw(self, surface):
         surface.blit(self.image, self.rect)
 
-    def __getitem__(self, item):  # TODO: This iterator is total shite
+    def __getitem__(self, item):
         if item == 0:
             return self.warrior
         elif item == 1:
@@ -361,7 +360,7 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
         """
         return [i for i in self if not i.KO]
 
-    def get_next_alive(self):  # TODO: TOTAL PIECE OF SHIT!!!
+    def get_next_alive(self):
         """
         Returns next alive party member,which stands in order after prev parameter.
         Raises StopIteration if prev was last in order or there are no more alive members

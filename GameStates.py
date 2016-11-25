@@ -363,7 +363,8 @@ class MapState(GameState):
         return npcs
 
     def enter_battle(self, event):
-        args_dict = {'player_party': self.player_party, 'party_members': event.party_members, 'bg': event.bg}
+        self.player_party.pause()
+        args_dict = {'player_party': self.player_party, 'party_members': event.party_members, 'bg': event.bg, 'id': event.id}
         self.call_state(BattleState, args_dict)
 
 
@@ -459,12 +460,18 @@ class LocalMapState(MapState):
             self.player_party.set_pos(tp.pos_x, tp.pos_y)
 
     def on_return(self, callback):
+        self.player_party.resume()
         self.player_party.add_items(callback['loot'])
         self.player_party.add_exp(callback['exp'])
         self.player_party.gold += callback['gold']
+        self.remove_npc(callback['id'])
+
+    def remove_npc(self, id):
+        del self.npcs[id]
 
 
-class BattleState(GameState):  # TODO: Turns must be handled as events
+
+class BattleState(GameState):
     """
     Game state in which battle with NPC's is handled
     """
@@ -577,16 +584,8 @@ class BattleState(GameState):  # TODO: Turns must be handled as events
 
     def get_event(self, event):
         super().get_event(event)
-        if event.type == BattleEvent and event.sub == Battle.ActionSelected:
-            self.dialog = None
-            self.take_action(event.action)
-        if event.type == BattleEvent and event.sub == Battle.NPCSelected:
-            self.apply_action(event.npc)
-        if event.type == BattleEvent and event.sub == Battle.CharacterKO:
-            # TODO: Remove from NPC list if NPC,red highlight if PC
-            self.knock_out(event.pc)
-        if event.type == BattleEvent and event.sub == Battle.DamageDodged:  # TODO: Handle in status bar
-            pass
+        if event.type is BattleEvent:
+            self.handle_battle_events(event)
         if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:  # Handle pause menu (de)activation
             self.toggle_pause_menu()
         elif self.pause_menu is not None and event.type == pg.KEYDOWN:  # Let the pause menu handle input first
@@ -595,6 +594,22 @@ class BattleState(GameState):  # TODO: Turns must be handled as events
             self.dialog.update(event.key)
         elif self.current_window is not None and event.type == pg.KEYDOWN:
             self.current_window.update(event.key)
+
+    def handle_battle_events(self, event):
+        if event.sub == Battle.ActionSelected:
+            self.take_action(event.action)
+        if event.sub == Battle.NPCSelected:
+            self.apply_action(event.npc)
+        if event.sub == Battle.CharacterKO:
+            self.knock_out(event.pc)
+        if event.sub == Battle.DamageDodged:  # TODO: Handle in status bar
+            pass
+        if event.sub == Battle.NextTurn:
+            self.next_turn()
+        if event.sub == Battle.GameOver:
+            self.game_over()
+        if event.sub == Battle.BattleWon:
+            self.win_battle()
 
     def toggle_pause_menu(self):
         if self.pause_menu is None:
@@ -611,29 +626,23 @@ class BattleState(GameState):  # TODO: Turns must be handled as events
     def choose_player_character(self):
         try:
             self.party_window.disable()
-            # self.current_character = next(self.player_party)
             self.current_character = self.player_party.get_next_alive()
-            if self.current_character is None:
-                self.game_over()  # No more alive party members
-            # if self.current_character.KO:
-            #    self.choose_player_character() # to make sure it doesn't choose KOed player
             self.party_window.set_current(self.current_character)
             self.call_action_menu()
         except StopIteration:
             self.party_window.disable()
             self.npc_turn = True
-            self.next_turn()
+            self.raise_event(Battle.NextTurn)
 
     def choose_npc_character(self):
         try:
             self.current_character = next(self.npc_iter)
             self.call_ai()
-            self.next_turn()
         except StopIteration:
             self.npc_turn = False
             self.current_character = None
             self.npc_iter = iter(self.npc_party)
-            self.next_turn()
+            self.raise_event(Battle.NextTurn)
 
     def next_turn(self):
         if self.npc_turn is True:
@@ -651,6 +660,7 @@ class BattleState(GameState):  # TODO: Turns must be handled as events
         Set action target selection state for specified action
         :param action:  Action enum
         """
+        self.dialog = None
         if action == Actions.Attack:
             self.last_action = action
             self.current_window = self.npc_window
@@ -679,6 +689,10 @@ class BattleState(GameState):  # TODO: Turns must be handled as events
         for i in self.windows:
             i.update_items()
 
+    def raise_event(self, subevent):
+        event = pg.event.Event(BattleEvent, {'sub': subevent})
+        pg.event.post(event)
+
     def knock_out(self, character):
         """
         Remove character from battle if it's NPC, block in UI and change sprite if player
@@ -687,11 +701,11 @@ class BattleState(GameState):  # TODO: Turns must be handled as events
         if isinstance(character, BaseNPC):
             self.npc_party.remove(character)
             self.npc_window.refresh_items()
-            if len(self.npc_party) == 0:  # TODO: If all enemies are defeated, raise win event
-                self.win_battle()
+            if len(self.npc_party) == 0:
+                self.raise_event(Battle.BattleWon)
         elif isinstance(character, BaseMember):
             if len(self.player_party.get_alive()) == 0:
-                self.game_over()
+                self.raise_event(Battle.GameOver)
 
     def game_over(self):  # TODO: Game over screen
         """
@@ -703,5 +717,5 @@ class BattleState(GameState):  # TODO: Turns must be handled as events
         """
         Called when all NPC's are defeated.Returns to previous map state
         """
-        args_dict = {'loot': self.loot, 'gold': self.gold, 'exp': self.experience}
+        args_dict = {'loot': self.loot, 'gold': self.gold, 'exp': self.experience, 'id': self.persist['id']}
         self.exit(args_dict)

@@ -746,7 +746,7 @@ class WizardWindow(Window, Menu):
             self.create_message('Not enough gold')
 
 
-class PartyInfoWindow(Window, Menu):  # TODO:Highlight current character
+class PartyInfoWindow(Window, Menu):
     """
     Window which displays info about party members (HP, MP) in battle
     """
@@ -801,7 +801,7 @@ class PartyInfoWindow(Window, Menu):  # TODO:Highlight current character
         self.index = self.party.get_index(character)
         self.set_cursor()
 
-class NPCInfoWindow(PartyInfoWindow):  # TODO: Update menu items (after npc being KO, etc.)
+class NPCInfoWindow(PartyInfoWindow):
     """
     Window which displays NPC party's members
     """
@@ -813,7 +813,6 @@ class NPCInfoWindow(PartyInfoWindow):  # TODO: Update menu items (after npc bein
         super().add_info_items()
 
     def choose_item(self):
-        #  TODO: Raise NPCSelectedEvent
         args_dict = {'sub': Battle.NPCSelected, 'npc': self.party[self.index]}
         event = pg.event.Event(BattleEvent, args_dict)
         pg.event.post(event)

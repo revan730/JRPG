@@ -10,6 +10,14 @@ import random as rand
 import Items
 
 
+def action(func):  # Decorator for NPC actions, posts NextTurn event so NPC can't take several actions at once
+    def wrapped(*args, **kwargs):
+        func(*args, **kwargs)
+        event = pg.event.Event(BattleEvent, {'sub': Battle.NextTurn})
+        pg.event.post(event)
+
+    return wrapped
+
 class BaseNPC(pg.sprite.Sprite):
     """
     Defines basic NPC class for battle state
@@ -82,7 +90,7 @@ class Test(BaseNPC):
         super().__init__()
         self.HP = self.MAX_HP = 100
         self.MP = self.MAX_MP = 5
-        self.DMG = 50
+        self.DMG = 5
         self.EXP = 15
         self.gold = 30
         self.name = 'Test NPC'
@@ -93,8 +101,11 @@ class Test(BaseNPC):
         self.image = pg.transform.scale(pg.image.load(helper.get_sprite('test','battle_idle')), (30, 38))
         self.rect = self.image.get_rect()
 
-    def decide(self, player_party, npc_party):  # TODO: Make this method as a decorator for other possible actions.
-        # Should raise event when action is taken.Attempt to make several actions should also be handled
+    def decide(self, player_party, npc_party):
         alive = player_party.get_alive()
         if len(alive) > 0:
-            alive[0].apply_damage(self.DMG)
+            self.attack(alive[0])
+
+    @action
+    def attack(self, player):
+        player.apply_damage(self.DMG)

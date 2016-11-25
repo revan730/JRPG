@@ -25,3 +25,4 @@ class BattleEnum(Enum):
     DamageDodged = 3  # Raised when damage dealt to player is dodged
     GameOver = 4  # Raised when all player characters are knocked out
     BattleWon = 5  # Raised when all NPC are knocked out (dead)
+    NextTurn = 6  # Raised when turn is passed to next character (NPC or PC)
