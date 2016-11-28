@@ -821,3 +821,23 @@ class NPCInfoWindow(PartyInfoWindow):
         """
         self.menu_items = []
         self.add_info_items()
+
+    def set_current(self,character):
+        self.index = self.party.index(character)
+        self.set_cursor()
+
+
+class StatusBar(MessageWindow):
+    """
+    Status bar for battle state.Displays text for defined amount of time
+    """
+
+    def __init__(self,x, y, width, height, time):
+        super().__init__(x, y, width, height, '')
+        self.lbl.x = x + 2
+        self.clock = 0
+        self.timeout = time
+        self.set_status('Actions made by characters will be showed here')
+
+    def set_status(self, status):
+        self.lbl.set(status)

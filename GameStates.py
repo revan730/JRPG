@@ -6,7 +6,7 @@ import pygame as pg
 from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent, BattleEvent, MenuQuitEvent, StackResetEvent
 from Events import BattleEnum as Battle
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
-from UI import PauseWindow, PartyWindow, MenuItem, InventoryWindow, TraderWindow, WizardWindow, PartyInfoWindow, NPCInfoWindow, SelectActionWindow,SelectCharacterWindow
+import UI
 from Player import PlayerParty, Camera, Teleport, ActionsEnum as Actions, BaseMember
 from NPC import Test, BaseNPC
 from pytmx import load_pygame
@@ -154,7 +154,7 @@ class MainMenuState(GameState):
 
         self.menu_items = []
         for i in sorted(menu_strings.keys()):
-            self.menu_items.append(MenuItem(i, menu_strings[i], None, 36, 'white', 'dodgerblue', x, y))
+            self.menu_items.append(UI.MenuItem(i, menu_strings[i], None, 36, 'white', 'dodgerblue', x, y))
             y += 30
 
         self.cursor_pos = 0
@@ -234,16 +234,16 @@ class MapState(GameState):
         if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:  # Handle pause menu (de)activation
             self.toggle_pause_menu()
         elif self.pause_menu is None and event.type == pg.KEYDOWN and event.key == pg.K_p:
-            self.toggle_menu(PartyWindow)
+            self.toggle_menu(UI.PartyWindow)
         elif self.pause_menu is None and event.type == pg.KEYDOWN and event.key == pg.K_i:
-            self.toggle_menu(InventoryWindow)
+            self.toggle_menu(UI.InventoryWindow)
         elif self.pause_menu is None and event.type == EncounterEvent and event.npc == 'trader':
-            self.toggle_menu(TraderWindow)
+            self.toggle_menu(UI.TraderWindow)
         elif self.pause_menu is None and event.type == EncounterEvent and event.npc == 'wizard':
-            self.toggle_menu(WizardWindow)
-        elif event.type == MenuQuitEvent and event.window == PauseWindow:
+            self.toggle_menu(UI.WizardWindow)
+        elif event.type == MenuQuitEvent and event.window == UI.PauseWindow:
             self.toggle_pause_menu()
-        elif event.type == MenuQuitEvent and event.window is not SelectCharacterWindow:
+        elif event.type == MenuQuitEvent and event.window is not UI.SelectCharacterWindow:
             self.toggle_menu(event.window)
         elif event.type == EncounterEvent and event.npc == 'enemy':
             self.enter_battle(event)
@@ -283,7 +283,7 @@ class MapState(GameState):
             height = self.screen_height / 4
             x = self.screen_width / 2 - width / 2
             y = self.screen_height / 2 - height / 2
-            self.pause_menu = PauseWindow(x, y, width, height)
+            self.pause_menu = UI.PauseWindow(x, y, width, height)
         else:
             self.pause_menu = None
             self.on_resume()
@@ -559,10 +559,12 @@ class BattleState(GameState):
             y += i.battle_rect.height + 10
 
     def set_ui(self):
-        self.party_window = PartyInfoWindow(self.screen_width * 0.498, self.screen_height * 0.698, self.screen_width * 0.5, self.screen_height * 0.3, self.player_party)
-        self.npc_window = NPCInfoWindow(0, self.screen_height * 0.698, self.screen_width * 0.5, self.screen_height * 0.3, self.npc_party)
+        self.party_window = UI.PartyInfoWindow(self.screen_width * 0.498, self.screen_height * 0.698, self.screen_width * 0.5, self.screen_height * 0.3, self.player_party)
+        self.npc_window = UI.NPCInfoWindow(0, self.screen_height * 0.698, self.screen_width * 0.5, self.screen_height * 0.3, self.npc_party)
+        self.status_bar = UI.StatusBar(0, self.screen_height * 0.65, self.screen_width * 0.998, self.screen_height * 0.05, 2000)
         self.windows.append(self.party_window)
         self.windows.append(self.npc_window)
+        self.windows.append(self.status_bar)
 
     def draw(self, surface):
         surface.blit(*self.bg)
@@ -590,6 +592,7 @@ class BattleState(GameState):
         elif self.current_window is not None and event.type == pg.KEYDOWN:
             self.current_window.update(event.key)
 
+
     def handle_battle_events(self, event):
         if event.sub == Battle.ActionSelected:
             self.take_action(event.action)
@@ -597,14 +600,19 @@ class BattleState(GameState):
             self.apply_action(event.npc)
         if event.sub == Battle.CharacterKO:
             self.knock_out(event.pc)
-        if event.sub == Battle.DamageDodged:  # TODO: Handle in status bar
-            pass
-        if event.sub == Battle.NextTurn:
+        if event.sub is Battle.NextTurn:
+            if hasattr(event, 'status'):
+                self.status_bar.set_status(event.status)
             self.next_turn()
-        if event.sub == Battle.GameOver:
+        if event.sub is Battle.GameOver:
             self.game_over()
-        if event.sub == Battle.BattleWon:
+        if event.sub is Battle.BattleWon:
             self.win_battle()
+        if event.sub is Battle.StatusUpdate:
+            self.status_bar.set_status(event.status)
+        if event.sub is Battle.AICall:
+            self.call_ai()
+            self.wait(1000)
 
     def toggle_pause_menu(self):
         if self.pause_menu is None:
@@ -613,7 +621,7 @@ class BattleState(GameState):
             height = self.screen_height / 4
             x = self.screen_width / 2 - width / 2
             y = self.screen_height / 2 - height / 2
-            self.pause_menu = PauseWindow(x, y, width, height)
+            self.pause_menu = UI.PauseWindow(x, y, width, height)
         else:
             self.pause_menu = None
             self.on_resume()
@@ -632,11 +640,12 @@ class BattleState(GameState):
     def choose_npc_character(self):
         try:
             self.current_character = next(self.npc_iter)
-            self.call_ai()
+            self.raise_event(Battle.AICall)
         except StopIteration:
             self.npc_turn = False
             self.current_character = None
             self.npc_iter = iter(self.npc_party)
+            self.npc_window.disable()
             self.raise_event(Battle.NextTurn)
 
     def next_turn(self):
@@ -647,8 +656,8 @@ class BattleState(GameState):
 
     def call_action_menu(self):
         width = self.screen_width * 0.3
-        heigth = self.screen_height * 0.3
-        self.dialog = SelectActionWindow(self.screen_width / 2 - width, self.screen_height * 0.698, width, heigth)
+        heigth = self.screen_height * 0.298
+        self.dialog = UI.SelectActionWindow(self.screen_width / 2 - width, self.screen_height * 0.7, width, heigth)
 
     def take_action(self, action):  # TODO: Implemented 1 / 4
         """
@@ -669,6 +678,8 @@ class BattleState(GameState):
         if self.last_action == Actions.Attack:
             dmg = self.current_character.DMG
             npc.apply_damage(dmg)
+            status = '{} dealt {} DMG to {}'.format(self.current_character.name, dmg, npc.name)
+            self.status_bar.set_status(status)
         self.current_window.update_items()
         self.current_window.disable()
         self.current_window = None
@@ -676,13 +687,16 @@ class BattleState(GameState):
         self.last_action = None
 
 
-    def call_ai(self):  # TODO: make pause after decision
+    def call_ai(self):
         """
         Call current NPC's AI function
         """
+        self.npc_window.disable()
+        self.npc_window.set_current(self.current_character)
         self.current_character.decide(self.player_party, self.npc_party)
         for i in self.windows:
-            i.update_items()
+            if i is not self.status_bar:
+                i.update_items()
 
     def raise_event(self, subevent):
         event = pg.event.Event(BattleEvent, {'sub': subevent})
@@ -714,3 +728,10 @@ class BattleState(GameState):
         """
         args_dict = {'loot': self.loot, 'gold': self.gold, 'exp': self.experience, 'id': self.persist['id']}
         self.exit(args_dict)
+
+    def wait(self, time):
+        """
+        waits specified amount of time (in millis)
+        :param time: time (in milliseconds)
+        """
+        pg.time.delay(time)

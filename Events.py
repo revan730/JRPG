@@ -26,3 +26,5 @@ class BattleEnum(Enum):
     GameOver = 4  # Raised when all player characters are knocked out
     BattleWon = 5  # Raised when all NPC are knocked out (dead)
     NextTurn = 6  # Raised when turn is passed to next character (NPC or PC)
+    StatusUpdate = 7  # Raised when status bar update is called
+    AICall = 8  # Raised when ai method on current npc should be called

@@ -518,20 +518,23 @@ class BaseMember:
         """
         Apply physical damage to party member.Lowered by armor rating or dodged completely
         :param dmg: int - damage dealt
+        :return: bool - True if damage wasn't dodged
         """
         if not self.KO:
             if rand.random() < self.EVS:  # Damage was dodged
-                self.raise_event(Battle.DamageDodged)
+                return False
             else:
                 damage = dmg - self.DEF
                 if damage <= 0:
                     damage = 1  # To make sure that armor can't consume all damage - that's what evasion is for
                 if damage < self.HP:
                     self.HP -= damage
+                    return True
                 else:  # damage is enough to knock out
                     self.HP = 0
                     self.KO = True
                     self.raise_event(Battle.CharacterKO)
+                    return True
         else:
             raise KOError(self)
 

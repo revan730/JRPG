@@ -12,8 +12,8 @@ import Items
 
 def action(func):  # Decorator for NPC actions, posts NextTurn event so NPC can't take several actions at once
     def wrapped(*args, **kwargs):
-        func(*args, **kwargs)
-        event = pg.event.Event(BattleEvent, {'sub': Battle.NextTurn})
+        status = func(*args, **kwargs)
+        event = pg.event.Event(BattleEvent, {'sub': Battle.NextTurn, 'status': status})
         pg.event.post(event)
 
     return wrapped
@@ -79,11 +79,22 @@ class BaseNPC(pg.sprite.Sprite):
 
         return loot
 
+    def post_status(self, status):
+        """
+        Called after making decision to set status explaining npc's action
+        :param status: string - action description
+        """
+        args_dict = {'status': status, 'sub': Battle.StatusUpdate}
+        event = pg.event.Event(BattleEvent, args_dict)
+        pg.event.post(event)
+
 
 class Test(BaseNPC):
     """
     Test NPC
     """
+    Counter = 0
+
     def __init__(self):
         super().__init__()
         self.HP = self.MAX_HP = 100
@@ -91,7 +102,8 @@ class Test(BaseNPC):
         self.DMG = 5
         self.EXP = 15
         self.gold = 30
-        self.name = 'Test NPC'
+        self.name = 'Test NPC {}'.format(Test.Counter)
+        Test.Counter += 1
         self._loot = [{'item': Items.Armor('Iron Armor', 5, 30, 'Iron armor'), 'rate': 0.25}]
 
     def load_sprites(self):
@@ -105,5 +117,10 @@ class Test(BaseNPC):
             self.attack(alive[0])
 
     @action
-    def attack(self, player):
-        player.apply_damage(self.DMG)
+    def attack(self, player): # TODO: Define basic actions in superclass, so they can be somehow wrapped for easier status posting
+        damaged =  player.apply_damage(self.DMG)
+        if damaged is False:
+            status = "{} dodged {}'s damage".format(player.name, self.name)
+        else:
+            status = '{} dealt {} damage to {}'.format(self.name, self.DMG, player.name)
+        return status
