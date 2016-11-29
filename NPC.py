@@ -66,6 +66,19 @@ class BaseNPC(pg.sprite.Sprite):
         else:
             self.HP -= dmg
 
+    @action
+    def attack(self, player):
+        damaged =  player.apply_damage(self.DMG)
+        if damaged is False:
+            status = "{} dodged {}'s damage".format(player.name, self.name)
+        else:
+            status = '{} dealt {} damage to {}'.format(self.name, self.DMG, player.name)
+        return status
+
+    @action
+    def cast_spell(self, spell, target):
+        pass
+
     def get_loot(self):
         """
         Generate loot for this NPC
@@ -116,11 +129,5 @@ class Test(BaseNPC):
         if len(alive) > 0:
             self.attack(alive[0])
 
-    @action
-    def attack(self, player): # TODO: Define basic actions in superclass, so they can be somehow wrapped for easier status posting
-        damaged =  player.apply_damage(self.DMG)
-        if damaged is False:
-            status = "{} dodged {}'s damage".format(player.name, self.name)
-        else:
-            status = '{} dealt {} damage to {}'.format(self.name, self.DMG, player.name)
-        return status
+    # TODO: Define basic actions in superclass, so they can be somehow wrapped for easier status posting
+

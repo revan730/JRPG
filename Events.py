@@ -20,7 +20,7 @@ class BattleEnum(Enum):
     Battle state subevents
     """
     ActionSelected = 0  # Raised when user selects action for character in battle
-    NPCSelected = 1
+    TargetSelected = 1
     CharacterKO = 2  # Raised when (non) player character is knocked out
     DamageDodged = 3  # Raised when damage dealt to player is dodged
     GameOver = 4  # Raised when all player characters are knocked out
@@ -28,3 +28,4 @@ class BattleEnum(Enum):
     NextTurn = 6  # Raised when turn is passed to next character (NPC or PC)
     StatusUpdate = 7  # Raised when status bar update is called
     AICall = 8  # Raised when ai method on current npc should be called
+    SpellSelected = 9

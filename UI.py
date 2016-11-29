@@ -4,7 +4,7 @@
 
 import pygame as pg
 from ResourceHelpers import StringsHelper
-from Player import Spell
+from Spells import Spell
 from Items import *
 from Player import CharacterEnum as character
 from Player import ActionsEnum as actions
@@ -291,7 +291,7 @@ class SelectActionWindow(Window, Menu):
     field
     """
 
-    def __init__(self,x ,y ,width, height):
+    def __init__(self, x ,y ,width, height):
         super().__init__(x, y, width, height)
         Menu.__init__(self)
         item_strings = ['Attack', 'Magic', 'Item', 'Flee']
@@ -323,6 +323,24 @@ class SelectActionWindow(Window, Menu):
 
     def choose_item(self):
         args_dict = {'sub': Battle.ActionSelected,'action': actions(self.index)}
+        event = pg.event.Event(BattleEvent, args_dict)
+        pg.event.post(event)
+
+
+class SelectSpellWindow(SelectActionWindow):
+
+    def __init__(self, x, y, width, height, player):
+        super().__init__(x, y , width, height)
+        self.menu_items.clear()
+        self.spells = player.spells
+        items = []
+        for i in player.spells:
+            items.append(i.name)
+        self.add_items(items)
+        self.set_cursor()
+
+    def choose_item(self):
+        args_dict = {'sub': Battle.SpellSelected, 'spell': self.spells[self.index]}
         event = pg.event.Event(BattleEvent, args_dict)
         pg.event.post(event)
 
@@ -789,7 +807,8 @@ class PartyInfoWindow(Window, Menu):
         self.set_cursor()
 
     def disable(self):
-        self.menu_items[self.index].set_inactive()
+        if self.index < len(self.menu_items):
+            self.menu_items[self.index].set_inactive()
 
     def set_current(self,character):
         """
@@ -798,6 +817,12 @@ class PartyInfoWindow(Window, Menu):
         """
         self.index = self.party.get_index(character)
         self.set_cursor()
+
+    def choose_item(self):
+        args_dict = {'sub': Battle.TargetSelected, 'npc': self.party[self.index]}
+        event = pg.event.Event(BattleEvent, args_dict)
+        pg.event.post(event)
+
 
 class NPCInfoWindow(PartyInfoWindow):
     """
@@ -809,11 +834,6 @@ class NPCInfoWindow(PartyInfoWindow):
 
     def add_info_items(self):
         super().add_info_items()
-
-    def choose_item(self):
-        args_dict = {'sub': Battle.NPCSelected, 'npc': self.party[self.index]}
-        event = pg.event.Event(BattleEvent, args_dict)
-        pg.event.post(event)
 
     def refresh_items(self):
         """

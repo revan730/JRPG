@@ -8,6 +8,7 @@ from ResourceHelpers import SettingsHelper as Settings, SpritesHelper as Sprites
 from Events import TeleportEvent, EncounterEvent, BattleEvent
 from Events import BattleEnum as Battle
 import Items
+import Spells
 import random as rand
 import pyganim
 
@@ -43,7 +44,7 @@ class KOError(Exception):
     """
 
     def __init__(self, character):
-        self.value = '{} is knocked out and tried to get damage'.format(character.name)
+        self.value = 'action cannot be applied to {}: character is knocked out'.format(character.name)
 
     def __str__(self):
         return repr(self.value)
@@ -204,6 +205,18 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
         """
         self.current_anim.play()
         self.paused = False
+
+    def enter_battle(self):
+        self.pause()
+        self.current_alive = self.get_alive()
+        self.alive_iter = iter(self.current_alive)
+
+    def exit_battle(self):
+        for i in self:
+            i.regenerate()
+        self.current_alive = None
+        self.alive_iter = None
+        self.resume()
 
     def collide_x(self, colliders):
         """
@@ -481,6 +494,10 @@ class BaseMember:
         self.armor = armor
         self.recalculate_stats()
 
+    def regenerate(self):
+        self.HP = self.MAX_HP
+        self.MP = self.MAX_MP
+
     def recalculate_stats(self):
         self.MAX_HP = self.DUR * self.hp_multiplier  # Maximal health points
         self.HP = self.MAX_HP  # Current HP, always regenerates to maximum when not in battle
@@ -538,6 +555,35 @@ class BaseMember:
         else:
             raise KOError(self)
 
+    def cast_spell(self, spell, target):  # TODO: Target alive check should be in UI? (Checked in Spell class!! Remove it from here)
+        """
+        Cast spell on specified target
+        :param spell: Spell object which belongs to this party member
+        :param target: Spell target
+        :return: bool - True if spell was successfully casted (enough mana,target is alive)
+        """
+        if spell in self.spells:
+            if self.MP >= spell.mp:
+                spell.apply(target)
+                self.MP -= spell.mp
+                return True
+                # KOed players (except for revive spells)
+            else:
+                return False  # Not enough mana
+
+    def heal(self, points):
+        """
+        Regenerates specified amount of HP
+        :param points: int - HP
+        """
+        if not self.KO:
+            if points > self.HP:
+                self.HP = self.MAX_MP
+            else:
+                self.HP += points
+        else:
+            raise KOError(self)
+
     def raise_event(self, subevent):
         """
         Raise player related event (Knocked out, damage dodged etc.)
@@ -546,37 +592,6 @@ class BaseMember:
         args_dict = {'sub': subevent, 'pc': self}
         event = pg.event.Event(BattleEvent, args_dict)
         pg.event.post(event)
-
-
-class Spell:
-    """
-    Represents spell, which can be applied to characters
-    """
-
-    def __init__(self, name, cost, mp_cost, info, character):
-        """
-
-        :param name: string - spell name
-        :param cost: int - cost in gold
-        :param mp_cost: int - mana cost
-        :param info: string - spell description
-        :param character: CharacterEnum - determines which character can learn this spell
-        """
-        self.name = name
-        self.cost = int(cost)
-        self.mp = int(mp_cost)
-        self.info = info
-        self.char = character
-
-    def apply(self, target):
-        """
-        apply spell on it's target
-        :param target: player or enemy party member
-        """
-        pass
-
-    def __str__(self):
-        return '{} ({} MP)'.format(self.name, self.mp)
 
 
 class Warrior(BaseMember):
@@ -661,7 +676,7 @@ class Healer(BaseMember):
         self._res_name = 'healer'
         self.recalculate_stats()
         self.load_sprites()
-        self.spells.append(Spell('Heal', 5, 5, "Restores 5 HP", CharacterEnum.Healer))
+        self.spells.append(Spells.Heal())
 
     def __str__(self):
         return 'Healer'

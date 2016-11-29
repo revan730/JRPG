@@ -9,6 +9,7 @@ from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHe
 import UI
 from Player import PlayerParty, Camera, Teleport, ActionsEnum as Actions, BaseMember
 from NPC import Test, BaseNPC
+from Spells import SideEnum as Sides
 from pytmx import load_pygame
 
 
@@ -359,7 +360,7 @@ class MapState(GameState):
         return npcs
 
     def enter_battle(self, event):
-        self.player_party.pause()
+        self.player_party.enter_battle()
         args_dict = {'player_party': self.player_party, 'party_members': event.party_members, 'bg': event.bg, 'id': event.id}
         self.call_state(BattleState, args_dict)
 
@@ -456,15 +457,14 @@ class LocalMapState(MapState):
             self.player_party.set_pos(tp.pos_x, tp.pos_y)
 
     def on_return(self, callback):
-        self.player_party.resume()
+        self.player_party.exit_battle()
         self.player_party.add_items(callback['loot'])
         self.player_party.add_exp(callback['exp'])
         self.player_party.gold += callback['gold']
         self.remove_npc(callback['id'])
 
-    def remove_npc(self, id):
+    def remove_npc(self, id):  # TODO: Remove NPC sprite from map
         del self.npcs[id]
-
 
 
 class BattleState(GameState):
@@ -489,6 +489,8 @@ class BattleState(GameState):
         self.experience = 0  # Total amount of experience every member get for battle
         self.sprites = []
         self.windows = []
+        self.dialog_width = self.screen_width * 0.3
+        self.dialog_height = self.screen_height * 0.298
         self.dialog = None  # Action select dialog
         self.last_action = None  # Save last action to know what to do with selected NPC
         self.load_npc()
@@ -585,6 +587,8 @@ class BattleState(GameState):
             self.handle_battle_events(event)
         if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:  # Handle pause menu (de)activation
             self.toggle_pause_menu()
+        if event.type == pg.KEYDOWN and event.key == pg.K_q:
+            self.cancel_action()
         elif self.pause_menu is not None and event.type == pg.KEYDOWN:  # Let the pause menu handle input first
             self.pause_menu.update(event.key)
         elif self.dialog is not None and event.type == pg.KEYDOWN:
@@ -596,7 +600,7 @@ class BattleState(GameState):
     def handle_battle_events(self, event):
         if event.sub == Battle.ActionSelected:
             self.take_action(event.action)
-        if event.sub == Battle.NPCSelected:
+        if event.sub == Battle.TargetSelected:
             self.apply_action(event.npc)
         if event.sub == Battle.CharacterKO:
             self.knock_out(event.pc)
@@ -613,6 +617,10 @@ class BattleState(GameState):
         if event.sub is Battle.AICall:
             self.call_ai()
             self.wait(1000)
+        if event.sub is Battle.SpellSelected:
+            self.dialog = None
+            self.last_action_func = event.spell
+            self.spell_target()
 
     def toggle_pause_menu(self):
         if self.pause_menu is None:
@@ -655,9 +663,11 @@ class BattleState(GameState):
             self.choose_player_character()
 
     def call_action_menu(self):
-        width = self.screen_width * 0.3
-        heigth = self.screen_height * 0.298
-        self.dialog = UI.SelectActionWindow(self.screen_width / 2 - width, self.screen_height * 0.7, width, heigth)
+        self.dialog = UI.SelectActionWindow(self.screen_width / 2 - self.dialog_width, self.screen_height * 0.7, self.dialog_width, self.dialog_height)
+
+    def call_spells_menu(self):
+        player = self.current_character
+        self.dialog = UI.SelectSpellWindow(self.screen_width / 2 - self.dialog_width, self.screen_height * 0.7, self.dialog_width, self.dialog_height, player)
 
     def take_action(self, action):  # TODO: Implemented 1 / 4
         """
@@ -669,6 +679,14 @@ class BattleState(GameState):
             self.last_action = action
             self.current_window = self.npc_window
             self.current_window.enable()
+        if action == Actions.Magic:
+            if len(self.current_character.spells) > 0:
+                self.last_action = action
+                self.party_window.disable()
+                self.call_spells_menu()
+            else:
+                self.status_bar.set_status('{} has no spells :('.format(self.current_character.name))
+                self.call_action_menu()
 
     def apply_action(self, npc):
         """
@@ -680,12 +698,43 @@ class BattleState(GameState):
             npc.apply_damage(dmg)
             status = '{} dealt {} DMG to {}'.format(self.current_character.name, dmg, npc.name)
             self.status_bar.set_status(status)
+        elif self.last_action == Actions.Magic:  # TODO: Maybe some check should be here?Test in game
+            if self.last_action_func.check_appliable(npc):
+                self.current_character.cast_spell(self.last_action_func, npc)
+                status = '{} casted {} on {}'.format(self.current_character.name, self.last_action_func, npc.name)
+                self.status_bar.set_status(status)
+            else:
+                status = 'Cannot cast {} on {}'.format(self.last_action_func, npc.name)
+                self.status_bar.set_status(status)
+                return
         self.current_window.update_items()
         self.current_window.disable()
         self.current_window = None
-        self.next_turn()
         self.last_action = None
+        self.last_action_func = None
+        self.next_turn()
 
+    def cancel_action(self):
+        """
+        Returns to action select menu
+        """
+        if self.npc_turn is False and self.last_action:
+            self.dialog = None
+            if self.current_window:
+                self.current_window.disable()
+                self.current_window = None
+            self.call_action_menu()
+
+    def spell_target(self):
+        """
+        Enable NPC or Player window to choose spell target
+        """
+        if self.last_action_func.side is Sides.NPC:
+            self.current_window = self.npc_window
+            self.current_window.enable()
+        else:
+            self.current_window = self.party_window
+            self.current_window.enable()
 
     def call_ai(self):
         """
@@ -731,7 +780,7 @@ class BattleState(GameState):
 
     def wait(self, time):
         """
-        waits specified amount of time (in millis)
+        waits specified amount of time (in millis).Blocks UI thread!!!
         :param time: time (in milliseconds)
         """
         pg.time.delay(time)
