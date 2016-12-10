@@ -51,8 +51,9 @@ class Usable(BaseItem):
     Represents usable item like potion, which applies some effect to user
     """
 
-    def __init__(self, name, cost, info):
+    def __init__(self, name, cost, info, side):
         super().__init__(name, cost, info)
+        self.side = side
 
     def __str__(self):
         return '{} ({} G)'.format(self.name, self.cost)
@@ -64,3 +65,33 @@ class Usable(BaseItem):
         """
         pass
 
+    def check_appliable(self, target):
+        pass
+
+class ManaPotion(Usable):
+
+    def __init__(self):
+        super().__init__('Mana potion', 50, 'Restores 20 MP', 1)
+
+    def apply_effect(self, target):
+        target.restore_mana(20)
+
+    def check_appliable(self, target):
+        if target.KO is not True and target.MP < target.MAX_MP:
+            return True
+        else:
+            return False
+
+class PhoenixDown(Usable):
+
+    def __init__(self):
+        super().__init__('Phoenix Down', 300, 'Resurrects party member',1)
+
+    def apply_effect(self, target):
+        target.resurrect()
+
+    def check_appliable(self, target):
+        if target.KO is True:
+            return True
+        else:
+            return False

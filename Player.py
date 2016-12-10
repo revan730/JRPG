@@ -49,7 +49,7 @@ class KOError(Exception):
     def __str__(self):
         return repr(self.value)
 
-class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry\leave handling
+class PlayerParty(pg.sprite.Sprite):
     """
     Class used to represent player characters' party on world and location map
     """
@@ -71,10 +71,10 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
         self.set_animations()
         self.current_anim = None
         self.paused = False
-        item = Items.Usable('Phoenix Down', 300, 'Ressurects fallen party members')
+        item = Items.PhoenixDown()
         sitem = Items.Weapon('BFG', 228, 228, 'Instant kill')
         self.inventory = [item, sitem]  # content of common inventory
-        self.gold = 20  # Starting gold amount
+        self.gold = 99999  # Starting gold amount
         self.create_party()
         self.current_alive = self.get_alive()
         self.alive_iter = iter(self.current_alive)
@@ -278,6 +278,13 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
         """
         self.inventory.extend(items)
 
+    def remove_item(self, item):
+        """
+        Remove item from inventory
+        :param item: Item object
+        """
+        self.inventory.remove(item)
+
     def add_exp(self, exp):
         """
         Add experience to all party members
@@ -363,6 +370,10 @@ class PlayerParty(pg.sprite.Sprite):  # TODO: Implement methods for battle entry
             self.current_alive = self.get_alive()
             self.alive_iter = iter(self.current_alive)
             raise StopIteration
+
+
+    def get_usable_items(self):
+        return [i for i in self.inventory if isinstance(i, Items.Usable)]
 
 
 class Camera(object):
@@ -498,12 +509,16 @@ class BaseMember:
         self.HP = self.MAX_HP
         self.MP = self.MAX_MP
 
+    def resurrect(self):
+        self.KO = False
+        self.regenerate()
+
     def recalculate_stats(self):
         self.MAX_HP = self.DUR * self.hp_multiplier  # Maximal health points
         self.HP = self.MAX_HP  # Current HP, always regenerates to maximum when not in battle
         self.MAX_MP = self.INT * self.mp_multiplier  # Maximal mana points
         self.MP = self.MAX_MP  # Also regenerates after battle
-        self.DMG = self.STR * self.dmg_multiplier  # Physical damage
+        self.DMG = self.STR * self.dmg_multiplier + self.weapon.dmg  # Physical damage
         self.DEF = self.armor.defence  # Damage points consumed by armor
         self.EVS = self.base_evs * self.DEX / 10 # Evasion chance
 
@@ -555,7 +570,7 @@ class BaseMember:
         else:
             raise KOError(self)
 
-    def cast_spell(self, spell, target):  # TODO: Target alive check should be in UI? (Checked in Spell class!! Remove it from here)
+    def cast_spell(self, spell, target):
         """
         Cast spell on specified target
         :param spell: Spell object which belongs to this party member
@@ -577,10 +592,23 @@ class BaseMember:
         :param points: int - HP
         """
         if not self.KO:
-            if points > self.HP:
-                self.HP = self.MAX_MP
+            if points > self.MAX_HP - self.HP:
+                self.HP = self.MAX_HP
             else:
                 self.HP += points
+        else:
+            raise KOError(self)
+
+    def restore_mana(self, points):
+        """
+        Regenerates specified amount of MP
+        :param points: int - MP
+        """
+        if not self.KO:
+            if points > self.MAX_MP - self.MP:
+                self.MP = self.MAX_MP
+            else:
+                self.MP += points
         else:
             raise KOError(self)
 
@@ -647,6 +675,7 @@ class Mage(BaseMember):
         self._res_name = 'mage'
         self.recalculate_stats()
         self.load_sprites()
+        self.spells.append(Spells.Fireball())
 
     def __str__(self):
         return 'Mage'

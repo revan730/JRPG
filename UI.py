@@ -4,7 +4,7 @@
 
 import pygame as pg
 from ResourceHelpers import StringsHelper
-from Spells import Spell
+from Spells import Fireball, SideEnum as side
 from Items import *
 from Player import CharacterEnum as character
 from Player import ActionsEnum as actions
@@ -219,7 +219,7 @@ class Window:
         pg.event.post(event)
 
     def create_message(self, msg):
-        self.dialog = MessageWindow(self.width / 2, self.height / 2, 100, 100, msg)
+        self.dialog = MessageWindow(self.x + self.width / 2 - 100, self.y + self.height / 2 - 50, 200, 100, msg)
 
 
 class MessageWindow(Window):
@@ -229,7 +229,7 @@ class MessageWindow(Window):
 
     def __init__(self, x, y, width, height, message):
         super().__init__(x, y, width, height)
-        self.lbl = Label(message, LBL_WHITE, None, 24, self.x + self.width / 2, self.y + self.height / 2)
+        self.lbl = Label(message, LBL_WHITE, None, 24, self.x + self.width * 0.2, self.y + self.height / 2)
 
     def draw(self, surface):
         super().draw(surface)
@@ -261,7 +261,7 @@ class SelectCharacterWindow(Window, Menu):  # TODO: Raise event on selection.Ref
         font_size = 36
 
         x = self.x + self.width / 2
-        padding = self.height / 2 + self.y - font_size / 2  # starting padding for first item to be near window center
+        padding = self.height / 2 + self.y - font_size * 1.5  # starting padding for first item to be near window center
         y = padding
         ind = 0
         for i in item_strings:
@@ -330,7 +330,7 @@ class SelectActionWindow(Window, Menu):
 class SelectSpellWindow(SelectActionWindow):
 
     def __init__(self, x, y, width, height, player):
-        super().__init__(x, y , width, height)
+        super().__init__(x, y, width, height)
         self.menu_items.clear()
         self.spells = player.spells
         items = []
@@ -341,6 +341,23 @@ class SelectSpellWindow(SelectActionWindow):
 
     def choose_item(self):
         args_dict = {'sub': Battle.SpellSelected, 'spell': self.spells[self.index]}
+        event = pg.event.Event(BattleEvent, args_dict)
+        pg.event.post(event)
+
+class SelectItemWindow(SelectActionWindow):
+
+    def __init__(self, x, y, width, height, items):
+        super().__init__(x, y, width, height)
+        self.menu_items.clear()
+        self.items = items
+        values = []
+        for i in items:
+            values.append(i.name)
+        self.add_items(values)
+        self.set_cursor()
+
+    def choose_item(self):
+        args_dict = {'sub': Battle.ItemSelected, 'item': self.items[self.index]}
         event = pg.event.Event(BattleEvent, args_dict)
         pg.event.post(event)
 
@@ -542,7 +559,7 @@ class InventoryWindow(Window, Menu):
             self.description.set('Empty')
 
     def create_character_dialog(self):
-        self.dialog = SelectCharacterWindow(self.width / 2, self.height / 2, 100, 100, self.party)
+        self.dialog = SelectCharacterWindow(self.x + 90, self.y + 25, 250, 250, self.party)
 
     def apply_selection(self, target):
         if target is not None:
@@ -560,8 +577,8 @@ class InventoryWindow(Window, Menu):
 
     def choose_item(self):
         item = self.party.inventory[self.index]
-        if type(item) is Usable:
-            self.create_message('This item can be only used in battle')
+        if isinstance(item, Usable):
+            self.create_message('Only for battle')
         else:
             self.create_character_dialog()
 
@@ -694,7 +711,7 @@ class WizardWindow(Window, Menu):
         super().__init__(x, y, width, height)
         Menu.__init__(self)
         self.party = party
-        self.buy_items = [Spell("Ice Blast", 7, 5, "Deals 5 DMG to enemy", character.Mage)]
+        self.buy_items = [Fireball()]
         self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
         self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
         self.load_items()

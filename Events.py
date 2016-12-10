@@ -29,3 +29,4 @@ class BattleEnum(Enum):
     StatusUpdate = 7  # Raised when status bar update is called
     AICall = 8  # Raised when ai method on current npc should be called
     SpellSelected = 9
+    ItemSelected = 10

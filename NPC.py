@@ -59,7 +59,6 @@ class BaseNPC(pg.sprite.Sprite):
     def apply_damage(self, dmg):
         if dmg >= self.HP:
             self.HP = 0
-            self.KO = True
             args_dict = {'sub': Battle.CharacterKO, 'pc': self}
             event = pg.event.Event(BattleEvent, args_dict)
             pg.event.post(event)

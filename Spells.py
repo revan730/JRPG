@@ -6,7 +6,7 @@ from enum import Enum, unique
 from Player import CharacterEnum as Character
 
 @unique
-class SideEnum(Enum):
+class SideEnum(Enum):  # TODO: Move all enums to separate module
     NPC = 0
     Player = 1
 
@@ -64,3 +64,14 @@ class Heal(Spell):
             return True
         else:
             return False
+
+class Fireball(Spell):
+
+    def __init__(self):
+        super().__init__('Fireball', 50, 10, 'Deal 15 points of damage', Character.Mage, SideEnum.NPC)
+
+    def apply(self, target):
+        target.apply_damage(15)
+
+    def check_appliable(self, target):
+        return True  # Spell is always appliable to NPC,as they are removed on knock out

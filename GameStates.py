@@ -620,7 +620,11 @@ class BattleState(GameState):
         if event.sub is Battle.SpellSelected:
             self.dialog = None
             self.last_action_func = event.spell
-            self.spell_target()
+            self.functor_target()
+        if event.sub is Battle.ItemSelected:
+            self.dialog = None
+            self.last_action_func = event.item
+            self.functor_target()
 
     def toggle_pause_menu(self):
         if self.pause_menu is None:
@@ -669,7 +673,11 @@ class BattleState(GameState):
         player = self.current_character
         self.dialog = UI.SelectSpellWindow(self.screen_width / 2 - self.dialog_width, self.screen_height * 0.7, self.dialog_width, self.dialog_height, player)
 
-    def take_action(self, action):  # TODO: Implemented 1 / 4
+    def call_items_menu(self):
+        items = self.player_party.get_usable_items()
+        self.dialog = UI.SelectItemWindow(self.screen_width / 2 - self.dialog_width, self.screen_height * 0.7, self.dialog_width, self.dialog_height, items)
+
+    def take_action(self, action):  # TODO: Implemented 3 / 4
         """
         Set action target selection state for specified action
         :param action:  Action enum
@@ -687,6 +695,14 @@ class BattleState(GameState):
             else:
                 self.status_bar.set_status('{} has no spells :('.format(self.current_character.name))
                 self.call_action_menu()
+        if action == Actions.Item:
+            if len(self.player_party.get_usable_items()) > 0:
+                self.last_action = action
+                self.party_window.disable()
+                self.call_items_menu()
+            else:
+                self.status_bar.set_status('Party has no usable items')
+                self.call_action_menu()
 
     def apply_action(self, npc):
         """
@@ -698,21 +714,47 @@ class BattleState(GameState):
             npc.apply_damage(dmg)
             status = '{} dealt {} DMG to {}'.format(self.current_character.name, dmg, npc.name)
             self.status_bar.set_status(status)
-        elif self.last_action == Actions.Magic:  # TODO: Maybe some check should be here?Test in game
-            if self.last_action_func.check_appliable(npc):
-                self.current_character.cast_spell(self.last_action_func, npc)
-                status = '{} casted {} on {}'.format(self.current_character.name, self.last_action_func, npc.name)
-                self.status_bar.set_status(status)
-            else:
-                status = 'Cannot cast {} on {}'.format(self.last_action_func, npc.name)
-                self.status_bar.set_status(status)
+        elif self.last_action == Actions.Magic:
+            if self.action_magic(npc) == False:
                 return
-        self.current_window.update_items()
+        elif self.last_action == Actions.Item:
+            if self.action_item(npc) == False:
+                return
+        self.npc_window.update_items()
+        self.party_window.update_items()
         self.current_window.disable()
         self.current_window = None
         self.last_action = None
         self.last_action_func = None
         self.next_turn()
+
+    def action_magic(self, npc):
+        if self.current_character.MP >= self.last_action_func.mp:
+            if self.last_action_func.check_appliable(npc):
+                self.current_character.cast_spell(self.last_action_func, npc)
+                status = '{} casted {} on {}'.format(self.current_character.name, self.last_action_func, npc.name)
+                self.status_bar.set_status(status)
+                return True
+            else:
+                status = 'Cannot cast {} on {}'.format(self.last_action_func, npc.name)
+                self.status_bar.set_status(status)
+                return False
+        else:
+            status = 'Not enough mana to cast {}'.format(self.last_action_func)
+            self.status_bar.set_status(status)
+            return False
+
+    def action_item(self, npc):
+        if self.last_action_func.check_appliable(npc):
+            self.last_action_func.apply_effect(npc)
+            self.player_party.remove_item(self.last_action_func)
+            status = '{} used on {}'.format(self.last_action_func, npc.name)
+            self.status_bar.set_status(status)
+            return True
+        else:
+            status = 'Cannot use {} on {}'.format(self.last_action_func, npc.name)
+            self.status_bar.set_status(status)
+            return False
 
     def cancel_action(self):
         """
@@ -725,7 +767,7 @@ class BattleState(GameState):
                 self.current_window = None
             self.call_action_menu()
 
-    def spell_target(self):
+    def functor_target(self):
         """
         Enable NPC or Player window to choose spell target
         """
@@ -764,6 +806,7 @@ class BattleState(GameState):
         elif isinstance(character, BaseMember):
             if len(self.player_party.get_alive()) == 0:
                 self.raise_event(Battle.GameOver)
+
 
     def game_over(self):  # TODO: Game over screen
         """
