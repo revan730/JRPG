@@ -457,10 +457,13 @@ class LocalMapState(MapState):
 
     def on_return(self, callback):
         self.player_party.exit_battle()
-        self.player_party.add_items(callback['loot'])
-        self.player_party.add_exp(callback['exp'])
-        self.player_party.gold += callback['gold']
-        self.remove_npc(callback['id'])
+        if 'flee' in callback.keys(): # Player fleed from battle
+            return
+        else:
+            self.player_party.add_items(callback['loot'])
+            self.player_party.add_exp(callback['exp'])
+            self.player_party.gold += callback['gold']
+            self.remove_npc(callback['id'])
 
     def remove_npc(self, id):  # TODO: Remove NPC sprite from map
         del self.npcs[id]
@@ -676,7 +679,7 @@ class BattleState(GameState):
         items = self.player_party.get_usable_items()
         self.dialog = UI.SelectItemWindow(self.screen_width / 2 - self.dialog_width, self.screen_height * 0.7, self.dialog_width, self.dialog_height, items)
 
-    def take_action(self, action):  # TODO: Implemented 3 / 4
+    def take_action(self, action):
         """
         Set action target selection state for specified action
         :param action:  Action enum
@@ -701,6 +704,9 @@ class BattleState(GameState):
                 self.call_items_menu()
             else:
                 self.status_bar.set_status('Party has no usable items')
+                self.call_action_menu()
+        if action == Actions.Flee:
+            if  self.flee() == False:
                 self.call_action_menu()
 
     def apply_action(self, npc):
@@ -819,6 +825,16 @@ class BattleState(GameState):
         """
         args_dict = {'loot': self.loot, 'gold': self.gold, 'exp': self.experience, 'id': self.persist['id']}
         self.exit(args_dict)
+
+    def flee(self):
+        """
+        Called when player wants to escape battle.Possible only if all members are alive
+        """
+        if len(self.player_party.get_alive()) == 4:
+            self.exit({'flee': True})
+        else:
+            self.status_bar.set_status("Cannot flee: you have KO'ed members")
+            return False
 
     def wait(self, time):
         """
