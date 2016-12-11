@@ -4,7 +4,7 @@
 
 import pygame as pg
 from ResourceHelpers import SpritesHelper
-from Events import BattleEnum as Battle
+from Enums import BattleEnum as Battle
 from Events import BattleEvent
 import random as rand
 import Items
@@ -17,6 +17,7 @@ def action(func):  # Decorator for NPC actions, posts NextTurn event so NPC can'
         pg.event.post(event)
 
     return wrapped
+
 
 class BaseNPC(pg.sprite.Sprite):
     """
@@ -67,7 +68,7 @@ class BaseNPC(pg.sprite.Sprite):
 
     @action
     def attack(self, player):
-        damaged =  player.apply_damage(self.DMG)
+        damaged = player.apply_damage(self.DMG)
         if damaged is False:
             status = "{} dodged {}'s damage".format(player.name, self.name)
         else:
@@ -120,13 +121,10 @@ class Test(BaseNPC):
 
     def load_sprites(self):
         helper = SpritesHelper()
-        self.image = pg.transform.scale(pg.image.load(helper.get_sprite('test','battle_idle')), (30, 38))
+        self.image = pg.transform.scale(pg.image.load(helper.get_sprite('test', 'battle_idle')), (30, 38))
         self.rect = self.image.get_rect()
 
     def decide(self, player_party, npc_party):
         alive = player_party.get_alive()
         if len(alive) > 0:
             self.attack(alive[0])
-
-    # TODO: Define basic actions in superclass, so they can be somehow wrapped for easier status posting
-

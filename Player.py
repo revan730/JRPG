@@ -2,11 +2,10 @@
 
 # -*- coding: utf-8 -*-
 
-from enum import Enum, unique
 import pygame as pg
 from ResourceHelpers import SettingsHelper as Settings, SpritesHelper as Sprites
 from Events import TeleportEvent, EncounterEvent, BattleEvent
-from Events import BattleEnum as Battle
+from Enums import BattleEnum as Battle
 import Items
 import Spells
 import random as rand
@@ -14,28 +13,6 @@ import pyganim
 
 P_HEIGHT = 18
 P_WIDTH = 15
-
-
-@unique
-class CharacterEnum(Enum):
-    """
-    Enumerate for character type check
-    """
-    Warrior = 0
-    Mage = 1
-    Healer = 2
-    Ranger = 3
-
-
-@unique
-class ActionsEnum(Enum):
-    """
-    Enumeration for character battle actions
-    """
-    Attack = 0
-    Magic = 1
-    Item = 2
-    Flee = 3
 
 
 class KOError(Exception):

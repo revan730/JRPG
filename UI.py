@@ -4,11 +4,10 @@
 
 import pygame as pg
 from ResourceHelpers import StringsHelper
-from Spells import Fireball, SideEnum as side
+from Spells import Fireball
 from Items import *
-from Player import CharacterEnum as character
-from Player import ActionsEnum as actions
-from Events import MenuQuitEvent, BattleEvent, BattleEnum as Battle
+from Enums import CharacterEnum as character, SideEnum as side, ActionsEnum as actions, BattleEnum as Battle
+from Events import MenuQuitEvent, BattleEvent
 
 LBL_BLUE = '#00E6E6'
 LBL_WHITE = 'white'

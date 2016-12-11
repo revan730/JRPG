@@ -2,13 +2,8 @@
 
 # -*- coding: utf-8 -*-
 
-from enum import Enum, unique
-from Player import CharacterEnum as Character
+from Enums import CharacterEnum as Character, SideEnum
 
-@unique
-class SideEnum(Enum):  # TODO: Move all enums to separate module
-    NPC = 0
-    Player = 1
 
 class Spell:
     """
@@ -64,6 +59,7 @@ class Heal(Spell):
             return True
         else:
             return False
+
 
 class Fireball(Spell):
 

@@ -4,12 +4,11 @@
 
 import pygame as pg
 from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent, BattleEvent, MenuQuitEvent, StackResetEvent
-from Events import BattleEnum as Battle
+from Enums import BattleEnum as Battle, SideEnum as Sides, ActionsEnum as Actions
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
 import UI
-from Player import PlayerParty, Camera, Teleport, ActionsEnum as Actions, BaseMember
+from Player import PlayerParty, Camera, Teleport, BaseMember
 from NPC import Test, BaseNPC
-from Spells import SideEnum as Sides
 from pytmx import load_pygame
 
 
