@@ -3,8 +3,8 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
-from Events import StateCallEvent, StateExitEvent, TeleportEvent, EncounterEvent, BattleEvent, MenuQuitEvent, StackResetEvent
-from Enums import BattleEnum as Battle, SideEnum as Sides, ActionsEnum as Actions
+from Events import *
+from Enums import BattleEnum as Battle, SideEnum as Sides, ActionsEnum as Actions, GameEnum
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
 import UI
 from Player import PlayerParty, Camera, Teleport, BaseMember
@@ -12,7 +12,7 @@ from NPC import Test, BaseNPC
 from pytmx import load_pygame
 
 
-class StateStack:
+class StateStack:  # TODO: Game save \ load in UI
     def __init__(self):
         self.states = []
 
@@ -86,24 +86,30 @@ class GameState:
     def on_resume(self):
         pass
 
+    def on_save(self):
+        pass
+
+    def on_load(self):
+        pass
+
     def exit(self, args_dict=None):
         """
         Called when state ends and game should return to previous state
         :param args_dict: dictionary of callback arguments,which will be received by previous state in stack
         """
-        exit_event = pg.event.Event(StateExitEvent, {'state': '', 'args': args_dict})
+        exit_event = pg.event.Event(EngineEvent, {'sub': GameEnum.StateExitEvent, 'state': '', 'args': args_dict})
         pg.event.post(exit_event)
 
     def call_state(self, state, args_dict=None):
-        event_args = {'state': state, 'args': args_dict}
-        call_event = pg.event.Event(StateCallEvent, event_args)
+        event_args = {'sub': GameEnum.StateCallEvent, 'state': state, 'args': args_dict}
+        call_event = pg.event.Event(EngineEvent, event_args)
         pg.event.post(call_event)
 
     def reset_states(self):
         """
         Called to clear all states from stack but first one
         """
-        event = pg.event.Event(StackResetEvent, {})
+        event = pg.event.Event(EngineEvent, {'sub': GameEnum.StackResetEvent})
         pg.event.post(event)
 
     def on_return(self, callback):
@@ -306,6 +312,13 @@ class MapState(GameState):
     def on_resume(self):
         self.player_party.resume()
 
+    def on_save(self):
+        self.tiled_map = None
+
+    def on_load(self):
+        self.tiled_map = load_pygame(self.persist['map_file'])  # reload tiled map
+        self.player_party.on_load() # reload all sprites
+
     def create_colliders(self):
         """
         Create rectangles to be used as colliders for collision check
@@ -367,10 +380,13 @@ class MapState(GameState):
 class WorldMapState(MapState):
     def __init__(self, persistent):
         super().__init__(persistent)
-        settings = SettingsHelper()
-        detailed_water = settings.get('world_water_tiled', False)
         self.bg = None
         self.draw_colliders = False
+        self.set_bg()
+
+    def set_bg(self):
+        settings = SettingsHelper()
+        detailed_water = settings.get('world_water_tiled', False)
         if not detailed_water:
             self.bg = pg.Surface((self.screen_width, self.screen_height))
             self.bg.fill(pg.Color(self.tiled_map.background_color))
@@ -407,6 +423,10 @@ class WorldMapState(MapState):
         self.player_party = callback['player_party']
         self.player_party.set_pos(callback['pos_x'], callback['pos_y'])
         self.player_party.reset_scale()  # Reset player party's rect scale after local map
+
+    def on_load(self):
+        super().on_load()
+        self.set_bg()
                 
     def get_event(self, event):
         super().get_event(event)
@@ -417,10 +437,9 @@ class WorldMapState(MapState):
         if event.type == pg.KEYDOWN and event.key == pg.K_c:
             self.draw_colliders = not self.draw_colliders
         if event.type == pg.KEYDOWN and event.key == pg.K_l:
-            warrior = self.player_party.warrior
-            warrior.add_exp(5)
-            print(warrior.EXP)
-
+            args_dict = {'sub': GameEnum.GameLoadEvent,'path': "save.sf"}
+            event = pg.event.Event(EngineEvent, args_dict)
+            pg.event.post(event)
 
 class LocalMapState(MapState):
     def __init__(self, persistent):
@@ -457,7 +476,7 @@ class LocalMapState(MapState):
 
     def on_return(self, callback):
         self.player_party.exit_battle()
-        if 'flee' in callback.keys(): # Player fleed from battle
+        if 'flee' in callback.keys(): # Player escaped from battle
             return
         else:
             self.player_party.add_items(callback['loot'])
@@ -469,7 +488,7 @@ class LocalMapState(MapState):
         del self.npcs[id]
 
 
-class BattleState(GameState):
+class BattleState(GameState):  # TODO: Animations
     """
     Game state in which battle with NPC's is handled
     """

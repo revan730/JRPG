@@ -70,6 +70,15 @@ class PlayerParty(pg.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
+    def on_load(self):
+        """
+        Called when game state is loaded (to avoid dead pygame surfaces)
+        """
+        self.image = pg.Surface((P_WIDTH, P_HEIGHT))
+        self.set_animations()
+        for i in self:
+            i.load_sprites()
+
     def set_animations(self):
         """
         Load and initialize animations for player actions

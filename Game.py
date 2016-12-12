@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 import pygame as pg
 import Events as evs
+from Enums import GameEnum as sub
 from GameStates import StateStack
+import pickle as pic
+import copy
 
 
 class Game:
@@ -29,14 +32,19 @@ class Game:
         Handles all events
         """
         for event in pg.event.get():
-            if event.type == evs.StateCallEvent:
-                self.state_stack.push(event.state(event.args))
-                self.state_stack.set_persistent(event.args)
-            elif event.type == evs.StateExitEvent:
-                self.state_stack.pop()
-                self.state_stack.send_callback(event.args)
-            elif event.type is evs.StackResetEvent:
-                self.state_stack.reset()
+            if event.type == evs.EngineEvent:
+                if event.sub == sub.StateCallEvent:
+                    self.state_stack.push(event.state(event.args))
+                    self.state_stack.set_persistent(event.args)
+                elif event.sub == sub.StateExitEvent:
+                    self.state_stack.pop()
+                    self.state_stack.send_callback(event.args)
+                elif event.sub is sub.StackResetEvent:
+                    self.state_stack.reset()
+                elif event.sub is sub.GameSaveEvent:
+                    self.save_game(event.path)
+                elif event.sub is sub.GameLoadEvent:
+                    self.load_game(event.path)
             else:
                 self.state_stack.get_event(event)
 
@@ -56,6 +64,37 @@ class Game:
         """
 
         self.state_stack.peek().draw(self.screen)
+
+    def save_game(self, path):
+        """
+        Save current game state in file
+        :param path: string - path to game save file
+        """
+        try:
+            file = open(path, "wb")
+            for i in self.state_stack.states:
+                i.on_save()
+            pic.dump(self.state_stack, file)
+            for i in self.state_stack.states:
+                i.on_load()
+        except IOError or pic.PicklingError as e:
+            print("Game save error: {}".format(e))
+
+    def load_game(self, path):
+        """
+        Load game state from file
+        :param path: string - path to game save file
+        """
+        temp_stack = self.state_stack
+        try:
+            file = open(path, 'rb')
+            self.state_stack = pic.load(file)
+            for i in self.state_stack.states:
+                i.on_load()
+            del temp_stack
+        except IOError or pic.UnpicklingError as e:
+            print("Game load error: {}".format(e))
+            self.state_stack = temp_stack
 
     def run(self):
         """

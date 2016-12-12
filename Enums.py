@@ -6,6 +6,17 @@ from enum import Enum, unique
 
 
 @unique
+class GameEnum(Enum):
+    """
+    Game engine subevents
+    """
+    StateCallEvent = 0
+    StateExitEvent = 1
+    StackResetEvent = 2
+    GameSaveEvent = 3
+    GameLoadEvent = 4
+
+@unique
 class BattleEnum(Enum):
     """
     Battle state subevents
