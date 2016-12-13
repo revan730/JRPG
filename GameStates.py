@@ -12,7 +12,7 @@ from NPC import Test, BaseNPC
 from pytmx import load_pygame
 
 
-class StateStack:  # TODO: Game save \ load in UI
+class StateStack:
     def __init__(self):
         self.states = []
 
@@ -253,6 +253,8 @@ class MapState(GameState):
             self.toggle_menu(event.window)
         elif event.type == EncounterEvent and event.npc == 'enemy':
             self.enter_battle(event)
+        elif event.type == pg.KEYDOWN and event.key == pg.K_l:  # Call game load\save menu
+            self.toggle_menu(UI.LoadSaveWindow)
         elif self.pause_menu is None and self.menu is None:  # Handle player control only if menu is not active
             self.player_control(event)
         elif self.pause_menu is not None and event.type == pg.KEYDOWN:  # Let the pause menu handle input first
@@ -318,6 +320,7 @@ class MapState(GameState):
     def on_load(self):
         self.tiled_map = load_pygame(self.persist['map_file'])  # reload tiled map
         self.player_party.on_load() # reload all sprites
+        self.set_bg()
 
     def create_colliders(self):
         """
@@ -424,10 +427,6 @@ class WorldMapState(MapState):
         self.player_party.set_pos(callback['pos_x'], callback['pos_y'])
         self.player_party.reset_scale()  # Reset player party's rect scale after local map
 
-    def on_load(self):
-        super().on_load()
-        self.set_bg()
-                
     def get_event(self, event):
         super().get_event(event)
         if event.type == TeleportEvent and event.teleport.world == 'localworld':
@@ -436,18 +435,18 @@ class WorldMapState(MapState):
             self.call_state(LocalMapState, args_dict)
         if event.type == pg.KEYDOWN and event.key == pg.K_c:
             self.draw_colliders = not self.draw_colliders
-        if event.type == pg.KEYDOWN and event.key == pg.K_l:
-            args_dict = {'sub': GameEnum.GameLoadEvent,'path': "save.sf"}
-            event = pg.event.Event(EngineEvent, args_dict)
-            pg.event.post(event)
+
 
 class LocalMapState(MapState):
     def __init__(self, persistent):
         super().__init__(persistent)
         self.player_party.set_pos(persistent['pos_x'], persistent['pos_y'])
+        self.set_bg()
+        self.player_party.scale_up()  # Player party's sprite is 2-x scaled on local map
+
+    def set_bg(self):
         self.bg = pg.Surface((self.screen_width, self.screen_height))
         self.bg.fill(pg.Color(self.tiled_map.background_color))
-        self.player_party.scale_up()  # Player party's sprite is 2-x scaled on local map
 
     def draw(self, surface):
         super().draw(surface)

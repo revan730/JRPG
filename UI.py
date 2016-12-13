@@ -3,11 +3,12 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
+import os
 from ResourceHelpers import StringsHelper
 from Spells import Fireball
 from Items import *
-from Enums import CharacterEnum as character, SideEnum as side, ActionsEnum as actions, BattleEnum as Battle
-from Events import MenuQuitEvent, BattleEvent
+from Enums import CharacterEnum as character, SideEnum as side, ActionsEnum as actions, BattleEnum as Battle, GameEnum
+from Events import MenuQuitEvent, BattleEvent, EngineEvent
 
 LBL_BLUE = '#00E6E6'
 LBL_WHITE = 'white'
@@ -497,6 +498,80 @@ class PartyWindow(Window, Menu):
             else:
                 surface.blit(i.image, i.rect)
 
+
+class LoadSaveWindow(Window, Menu):
+    """
+    Window which allows game state save\load
+    """
+    def __init__(self, x, y, width, height, dummy):
+        super().__init__(x, y, width, height)
+        Menu.__init__(self)
+        self.save_state = True
+        self.state_lbl = Label('Save', LBL_BLUE, None, 18, self.x + 5, self.y + 5)
+        self.set_items()
+
+    def draw(self,surface):
+        super().draw(surface)
+        surface.blit(self.state_lbl.image, self.state_lbl.rect)
+        for i in self.menu_items:
+            surface.blit(i.image, i.rect)
+        if self.dialog is not None:
+            self.dialog.draw(surface)
+
+    def update(self, key):
+        if self.dialog is not None:
+            self.dialog.update(key)
+            if self.dialog.quit is True:
+                self.dialog = None
+        else:
+            if key == pg.K_a or key == pg.K_d or key == pg.K_LEFT or key == pg.K_RIGHT:
+                self.switch_state()
+            else:
+                super(LoadSaveWindow, self).update(key)
+                Menu.update(self, key)
+
+    def switch_state(self):
+        self.save_state = not self.save_state
+        if self.save_state is True:
+            self.state_lbl.set('Save')
+        else:
+            self.state_lbl.set('Load')
+
+
+    def set_items(self):
+        font_size = 24
+        y = self.y + self.height * 0.1 + font_size / 2
+        x = self.x + self.width * 0.01
+
+        for i in range(1, 13):
+            item = MenuItem(i, 'Save slot {}'.format(i), None, font_size, LBL_WHITE, LBL_GREEN, x, y, False)
+            self.drawables.append(item)
+            self.menu_items.append(item)
+            y += self.height * 0.06
+
+        self.set_cursor()
+
+    def choose_item(self):
+        if self.save_state is True:
+            self.save(self.index)
+        else:
+            self.load(self.index)
+
+    def save(self, slot):
+        args_dict = {'sub': GameEnum.GameSaveEvent, 'path': 'saves/save_{}.sf'.format(slot)}
+        event = pg.event.Event(EngineEvent, args_dict)
+        self.close()
+        pg.event.post(event)
+
+
+    def load(self, slot):
+        if os.path.isfile('saves/save_{}.sf'.format(slot)):
+            args_dict = {'sub': GameEnum.GameLoadEvent, 'path': 'saves/save_{}.sf'.format(slot)}
+            event = pg.event.Event(EngineEvent, args_dict)
+            self.close()
+            pg.event.post(event)
+        else:
+            self.create_message('No data in this slot')
 
 class InventoryWindow(Window, Menu):
     """
