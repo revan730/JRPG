@@ -8,7 +8,7 @@ from Enums import BattleEnum as Battle, SideEnum as Sides, ActionsEnum as Action
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
 import UI
 from Player import PlayerParty, Camera, Teleport, BaseMember
-from NPC import Test, BaseNPC
+from NPC import Test, FireElemental, BaseNPC
 from pytmx import load_pygame
 
 
@@ -567,8 +567,6 @@ class BattleState(GameState):  # TODO: Animations
         for i in self.npc_party:
             i.rect.x = x
             i.rect.y = y
-            bg_color = "#7bd5fe"
-            i.image.set_colorkey(pg.Color(bg_color))
             self.sprites.append((i.image, i.rect))
             y += i.rect.height + 10
 

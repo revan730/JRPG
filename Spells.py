@@ -17,7 +17,7 @@ class Spell:
         :param cost: int - cost in gold
         :param mp_cost: int - mana cost
         :param info: string - spell description
-        :param character: CharacterEnum - determines which character can learn this spell
+        :param character: CharacterEnum - determines which character can learn this spell (if spell is player-used)
         :param side: SideEnum - determines if spell is used on Player or NPC party
         """
         self.name = name
@@ -71,3 +71,20 @@ class Fireball(Spell):
 
     def check_appliable(self, target):
         return True  # Spell is always appliable to NPC,as they are removed on knock out
+
+class FireBreath(Spell):
+    """
+    Fire elemental spell
+    """
+
+    def __init__(self):
+        super().__init__('Fire breath', 0, 10, 'Deal 15 points of damage', 0, SideEnum.Player)
+
+    def apply(self, target):
+        target.apply_magic_damage(15)
+
+    def check_appliable(self, target):
+        if target.KO:
+            return False
+        else:
+            return True

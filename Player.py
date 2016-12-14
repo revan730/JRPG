@@ -556,6 +556,20 @@ class BaseMember:
         else:
             raise KOError(self)
 
+    def apply_magic_damage(self, damage):
+        """
+        Apply magical damage, which ignores armor and evasion
+        """
+        if not self.KO:
+            if damage < self.HP:
+                self.HP -= damage
+            else:
+                self.HP = 0
+                self.KO = True
+                self.raise_event(Battle.CharacterKO)
+        else:
+            raise KOError(self)
+
     def cast_spell(self, spell, target):
         """
         Cast spell on specified target

@@ -3,6 +3,8 @@
 # -*- coding: utf-8 -*-
 
 import pygame as pg
+
+import Spells
 from ResourceHelpers import SpritesHelper
 from Enums import BattleEnum as Battle
 from Events import BattleEvent
@@ -24,19 +26,19 @@ class BaseNPC(pg.sprite.Sprite):
     Defines basic NPC class for battle state
     """
 
-    def __init__(self):
+    def __init__(self, res_name, hp, mp, dmg, exp, gold, loot, spells):
         super().__init__()
-        self.spells = []  # List of spell objects which NPC can cast
-        self._res_name = None
-        self.HP = 0
-        self.MAX_HP = 0
-        self.MP = 0
-        self.MAX_MP = 0
-        self.DMG = 0
-        self._loot = []  # list of Item,Drop Rate dicts
+        self.spells = spells  # List of spell objects which NPC can cast
+        self._res_name = res_name
+        self.HP = hp
+        self.MAX_HP = hp
+        self.MP = mp
+        self.MAX_MP = mp
+        self.DMG = dmg
+        self._loot = loot  # list of Item,Drop Rate dicts
         self.load_sprites()
-        self.EXP = 0  # Experience points which every player character gets for defeating this NPC
-        self.gold = 0  # Gold for defeating this NPC
+        self.EXP = exp  # Experience points which every player character gets for defeating this NPC
+        self.gold = gold  # Gold for defeating this NPC
 
     def decide(self, player_party, npc_party):
         """
@@ -77,7 +79,16 @@ class BaseNPC(pg.sprite.Sprite):
 
     @action
     def cast_spell(self, spell, target):
-        pass
+        """
+        cast selected spell on target
+        :param spell: spell object
+        :param target: BaseMember or BaseNPC object
+        :return: status string - information about spell cast
+        """
+        spell.apply(target)
+        self.MP -= spell.mp
+        status = '{} casted {} on {}'.format(self.name, spell, target.name)
+        return status
 
     def get_loot(self):
         """
@@ -109,22 +120,52 @@ class Test(BaseNPC):
     Counter = 0
 
     def __init__(self):
-        super().__init__()
-        self.HP = self.MAX_HP = 100
-        self.MP = self.MAX_MP = 5
-        self.DMG = 5
-        self.EXP = 15
-        self.gold = 30
-        self.name = 'Test NPC {}'.format(Test.Counter)
+        loot = [{'item': Items.Armor('Iron Armor', 5, 30, 'Iron armor'), 'rate': 0.25}]
+        super().__init__('test', 100, 0, 5, 15, 30, loot, [])
+        self.name = 'Test NPC {}'.format(Test.Counter + 1)
         Test.Counter += 1
-        self._loot = [{'item': Items.Armor('Iron Armor', 5, 30, 'Iron armor'), 'rate': 0.25}]
 
     def load_sprites(self):
         helper = SpritesHelper()
         self.image = pg.transform.scale(pg.image.load(helper.get_sprite('test', 'battle_idle')), (30, 38))
+        self.image.set_colorkey(pg.Color("#7bd5fe"))
         self.rect = self.image.get_rect()
 
     def decide(self, player_party, npc_party):
         alive = player_party.get_alive()
         if len(alive) > 0:
             self.attack(alive[0])
+
+
+class FireElemental(BaseNPC):
+    """
+    Fire elemental NPC.Targets player with smallest amount of health first
+    """
+
+    Counter = 0
+
+    def __init__(self):
+        loot = [{'item': Items.FireBlade, 'rate': 0.1}]
+        spells = [Spells.FireBreath()]
+        super(FireElemental, self).__init__('fire_elem', 50, 20, 5, 10, 30, loot, spells)
+        self.name = 'Fire elemental {}'.format(FireElemental.Counter + 1)
+        FireElemental.Counter += 1
+
+    def load_sprites(self):
+        helper = SpritesHelper()
+        self.image = pg.transform.scale(pg.image.load(helper.get_sprite('fire_elem', 'battle_idle')), (24, 36))
+        self.image.set_colorkey(pg.Color("#fec5c5"))
+        self.rect = self.image.get_rect()
+
+    def decide(self, player_party, npc_party):
+        """
+        Choose player with smallest amount of health.Cast fire breath if enough MP
+        """
+        min_member = player_party[0]
+        for i in player_party:
+            if i.HP < min_member.HP and not i.KO:
+                min_member = i
+        if self.MP >= self.spells[0].mp:
+            self.cast_spell(self.spells[0], min_member)
+        else:
+            self.attack(min_member)

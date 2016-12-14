@@ -95,3 +95,11 @@ class PhoenixDown(Usable):
             return True
         else:
             return False
+
+class FireBlade(Weapon):
+    """
+    Drops from fire elemental
+    """
+
+    def __init__(self):
+        super().__init__('Fire blade', 10, 85, 'Blade made of elemental fire')
