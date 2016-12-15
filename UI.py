@@ -637,10 +637,10 @@ class InventoryWindow(Window, Menu):
 
     def apply_selection(self, target):
         if target is not None:
-            if type(self.party.inventory[self.index]) is Weapon:
+            if isinstance(self.party.inventory[self.index], Weapon):
                 self.party.inventory.append(target.weapon)
                 target.set_weapon(self.party.inventory[self.index])
-            elif type(self.party.inventory[self.index]) is Armor:
+            elif isinstance(self.party.inventory[self.index], Armor):
                 self.party.inventory.append(target.armor)
                 target.set_armor(self.party.inventory[self.index])
 
@@ -669,7 +669,7 @@ class TraderWindow(Window, Menu):
         self.party = party
         self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
         self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
-        self.buy_items = [Weapon('BFG', 228, 300, 'FUCKING BIG'), Usable('Health Potion', 10, 'Restores 10 HP in battle')]
+        self.buy_items = [ManaPotion()]
         self.load_items()
         self.set_cursor()
 

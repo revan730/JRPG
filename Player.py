@@ -237,8 +237,8 @@ class PlayerParty(pg.sprite.Sprite):
 
     def collide_npc(self, npcs):
         for n in npcs:
-            if self.rect.colliderect(n['rect']):
-                event_args = {'npc': n['name'], 'party_members': n['party_members'], 'bg': n['bg'], 'id': npcs.index(n)}
+            if self.rect.colliderect(n.rect):
+                event_args = {'npc': n}
                 npc_event = pg.event.Event(EncounterEvent, event_args)
                 pg.event.post(npc_event)
 

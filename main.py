@@ -17,4 +17,4 @@ settings.set('screen_height', h)
 screen = pg.display.set_mode(DISPLAY)
 pg.display.set_caption('Sephiroth engine')
 g = Game(screen, MainMenuState)
-g.run()
+g.run()  # TODO: Global!! Animations in BattleState, remember removed NPC, add sound, more maps,NPCs

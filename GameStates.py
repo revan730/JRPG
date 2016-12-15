@@ -8,7 +8,7 @@ from Enums import BattleEnum as Battle, SideEnum as Sides, ActionsEnum as Action
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
 import UI
 from Player import PlayerParty, Camera, Teleport, BaseMember
-from NPC import Test, FireElemental, BaseNPC
+from NPC import Test, FireElemental, BaseNPC, MapNPC, MapTrader, MapWizard
 from pytmx import load_pygame
 
 
@@ -243,16 +243,16 @@ class MapState(GameState):
             self.toggle_menu(UI.PartyWindow)
         elif self.pause_menu is None and event.type == pg.KEYDOWN and event.key == pg.K_i:
             self.toggle_menu(UI.InventoryWindow)
-        elif self.pause_menu is None and event.type == EncounterEvent and event.npc == 'trader':
+        elif self.pause_menu is None and event.type == EncounterEvent and isinstance(event.npc, MapTrader):
             self.toggle_menu(UI.TraderWindow)
-        elif self.pause_menu is None and event.type == EncounterEvent and event.npc == 'wizard':
+        elif self.pause_menu is None and event.type == EncounterEvent and isinstance(event.npc, MapWizard):
             self.toggle_menu(UI.WizardWindow)
+        elif event.type == EncounterEvent and isinstance(event.npc, MapNPC):
+            self.enter_battle(event)
         elif event.type == MenuQuitEvent and event.window == UI.PauseWindow:
             self.toggle_pause_menu()
         elif event.type == MenuQuitEvent and event.window is not UI.SelectCharacterWindow:
             self.toggle_menu(event.window)
-        elif event.type == EncounterEvent and event.npc == 'enemy':
-            self.enter_battle(event)
         elif event.type == pg.KEYDOWN and event.key == pg.K_l:  # Call game load\save menu
             self.toggle_menu(UI.LoadSaveWindow)
         elif self.pause_menu is None and self.menu is None:  # Handle player control only if menu is not active
@@ -320,6 +320,8 @@ class MapState(GameState):
     def on_load(self):
         self.tiled_map = load_pygame(self.persist['map_file'])  # reload tiled map
         self.player_party.on_load() # reload all sprites
+        for i in self.npcs:
+            i.on_load()
         self.set_bg()
 
     def create_colliders(self):
@@ -329,7 +331,7 @@ class MapState(GameState):
         """
         size = self.scaled_size
         colliders = []
-        for i in range(0, len(self.tiled_map.layers)):
+        for i in range(0, len(self.tiled_map.layers) - 1):
             for x, y, image in self.tiled_map.layers[i].tiles():
                 p = self.tiled_map.get_tile_properties(x, y, i)
                 if p['walkable'] == 'false':
@@ -359,24 +361,27 @@ class MapState(GameState):
 
     def create_npcs(self):
         npcs = []
-        size = self.scaled_size
-        npc_index = int(self.tiled_map.properties['npc_layer_index'])
-        for x, y, image in self.tiled_map.get_layer_by_name('npc').tiles():
-            p = self.tiled_map.get_tile_properties(x, y, npc_index)
-            width = p['width']
-            heigth = p['height']
-            name = p['npc']
-            party = p['party_members'] if 'party_members' in p.keys() else None
-            bg = p['bg'] if 'bg' in p.keys() else None
-            rect = pg.Rect(x * size, y * size, width, heigth)
-            npc = {'rect': rect, 'name': name, 'party_members': party, 'bg': bg}
+        for obj in self.tiled_map.get_layer_by_name('npc'):
+            p = obj.properties
+            name = p['npc']  # Reserved - Trader, Wizard
+            x = int(obj.x) * self.scale_factor
+            y = int(obj.y) * self.scale_factor
+            if name == 'trader':
+                npc = MapTrader(x, y)
+            elif name == 'wizard':
+                npc = MapWizard(x, y)
+            else:
+                party = p['party_members'].split(',') if 'party_members' in p.keys() else None
+                bg = p['bg'] if 'bg' in p.keys() else None
+                id = int(p['nid']) if 'nid' in p.keys() else None
+                npc = MapNPC(x,y, party, bg, id)
             npcs.append(npc)
 
         return npcs
 
     def enter_battle(self, event):
         self.player_party.enter_battle()
-        args_dict = {'player_party': self.player_party, 'party_members': event.party_members, 'bg': event.bg, 'id': event.id}
+        args_dict = {'player_party': self.player_party, 'party_members': event.npc.party, 'bg': event.npc.bg, 'id': event.npc.id}
         self.call_state(BattleState, args_dict)
 
 
@@ -457,6 +462,10 @@ class LocalMapState(MapState):
                 scaled_image = pg.transform.scale(image, (size, size))
                 surface.blit(scaled_image, self.camera.apply(pg.Rect(x * size, y * size, size, size)))
             surface.blit(scaled_party, self.camera.apply(self.player_party.rect))
+        # Draw NPCs
+        for i in self.npcs:
+            surface.blit(i.image, self.camera.apply(i.rect))
+
         if self.menu is not None:
             self.menu.draw(surface)
         if self.pause_menu is not None:
@@ -483,8 +492,10 @@ class LocalMapState(MapState):
             self.player_party.gold += callback['gold']
             self.remove_npc(callback['id'])
 
-    def remove_npc(self, id):  # TODO: Remove NPC sprite from map
-        del self.npcs[id]
+    def remove_npc(self, id):
+        for i in self.npcs:
+            if hasattr(i, 'id') and i.id == id:
+                self.npcs.remove(i)
 
 
 class BattleState(GameState):  # TODO: Animations
@@ -532,7 +543,7 @@ class BattleState(GameState):  # TODO: Animations
         """
         self.npc_party = []
 
-        members = self.persist['party_members'].split(',')
+        members = self.persist['party_members']
 
         for i in members:
             self.npc_party.append(eval(i)())

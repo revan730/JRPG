@@ -9,7 +9,7 @@ from ResourceHelpers import SpritesHelper
 from Enums import BattleEnum as Battle
 from Events import BattleEvent
 import random as rand
-import Items
+from Items import *
 
 
 def action(func):  # Decorator for NPC actions, posts NextTurn event so NPC can't take several actions at once
@@ -19,6 +19,78 @@ def action(func):  # Decorator for NPC actions, posts NextTurn event so NPC can'
         pg.event.post(event)
 
     return wrapped
+
+
+class MapNPC:
+    """
+    Defines NPC for map state
+    """
+
+    def __init__(self,x, y, party, bg, id):
+        """
+
+        :param party: list of npc party members (turned to objects by eval function)
+        :param bg: name of battle background file
+        :param id: unique party id (for quests etc.)
+        """
+        self.party = party
+        self.bg = bg
+        self.id = id
+        self.x = x
+        self.y = y
+        self.create_map_image()
+
+    def create_map_image(self):
+        member = eval(self.party[0])
+        self.image = member.load_map_sprite(member)
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+    def on_load(self):
+        self.create_map_image()
+
+class MapTrader:
+    """
+    Defines trader for map state
+    """
+
+    def __init__(self,x, y):
+        self.x = x
+        self.y = y
+        self.load_sprite()
+
+    def load_sprite(self):
+        helper = SpritesHelper()
+        self.image = pg.transform.scale(pg.image.load(helper.get_sprite('trader', 'map')), (30, 38))
+        self.image.set_colorkey(pg.Color("#7bd5fe"))
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+    def on_load(self):
+        self.load_sprite()
+
+class MapWizard:
+    """
+    Defines wizard for map state
+    """
+
+    def __init__(self,x, y):
+        self.x = x
+        self.y = y
+        self.load_sprite()
+
+    def load_sprite(self):
+        helper = SpritesHelper()
+        self.image = pg.transform.scale(pg.image.load(helper.get_sprite('wizard', 'map')), (30, 38))
+        self.image.set_colorkey(pg.Color("#7bd5fe"))
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+    def on_load(self):
+        self.load_sprite()
 
 
 class BaseNPC(pg.sprite.Sprite):
@@ -51,6 +123,13 @@ class BaseNPC(pg.sprite.Sprite):
     def load_sprites(self):
         """
         Loads all sprite images
+        """
+        pass
+
+    def load_map_sprite(self):
+        """
+        Load map sprite and return it
+        :return: pygame image
         """
         pass
 
@@ -99,7 +178,7 @@ class BaseNPC(pg.sprite.Sprite):
         chance = rand.random()
         for i in self._loot:
             if chance >= i['rate']:
-                loot.append(i['item'])
+                loot.append(i['item']())
 
         return loot
 
@@ -120,16 +199,26 @@ class Test(BaseNPC):
     Counter = 0
 
     def __init__(self):
-        loot = [{'item': Items.Armor('Iron Armor', 5, 30, 'Iron armor'), 'rate': 0.25}]
+        loot = [{'item': ManaPotion, 'rate': 0.25}]
         super().__init__('test', 100, 0, 5, 15, 30, loot, [])
         self.name = 'Test NPC {}'.format(Test.Counter + 1)
         Test.Counter += 1
+
+    def __del__(self):
+        Test.Counter -= 1
 
     def load_sprites(self):
         helper = SpritesHelper()
         self.image = pg.transform.scale(pg.image.load(helper.get_sprite('test', 'battle_idle')), (30, 38))
         self.image.set_colorkey(pg.Color("#7bd5fe"))
         self.rect = self.image.get_rect()
+
+    def load_map_sprite(self):
+        helper = SpritesHelper()
+        image = pg.transform.scale(pg.image.load(helper.get_sprite('test', 'map')), (30, 38))
+        image.set_colorkey(pg.Color("#7bd5fe"))
+
+        return image
 
     def decide(self, player_party, npc_party):
         alive = player_party.get_alive()
@@ -145,7 +234,7 @@ class FireElemental(BaseNPC):
     Counter = 0
 
     def __init__(self):
-        loot = [{'item': Items.FireBlade, 'rate': 0.1}]
+        loot = [{'item': FireBlade, 'rate': 0.1}]
         spells = [Spells.FireBreath()]
         super(FireElemental, self).__init__('fire_elem', 50, 20, 5, 10, 30, loot, spells)
         self.name = 'Fire elemental {}'.format(FireElemental.Counter + 1)
@@ -156,6 +245,13 @@ class FireElemental(BaseNPC):
         self.image = pg.transform.scale(pg.image.load(helper.get_sprite('fire_elem', 'battle_idle')), (24, 36))
         self.image.set_colorkey(pg.Color("#fec5c5"))
         self.rect = self.image.get_rect()
+
+    def load_map_sprite(self):
+        helper = SpritesHelper()
+        image = pg.transform.scale(pg.image.load(helper.get_sprite('fire_elem', 'map')), (24, 36))
+        image.set_colorkey(pg.Color("#fec5c5"))
+
+        return image
 
     def decide(self, player_party, npc_party):
         """
