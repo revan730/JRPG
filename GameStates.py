@@ -614,6 +614,8 @@ class BattleState(GameState):  # TODO: Animations
         super().get_event(event)
         if event.type is BattleEvent:
             self.handle_battle_events(event)
+        if event.type is MenuQuitEvent:
+            self.pause_menu = None
         if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:  # Handle pause menu (de)activation
             self.toggle_pause_menu()
         if event.type == pg.KEYDOWN and event.key == pg.K_q:
