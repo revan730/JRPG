@@ -103,7 +103,6 @@ class SpritesHelper:
         """
         Get path of background image
         :param name: name of background
-        :return:
         """
 
         path = '{res}{sep}backgrounds{sep}{name}.png'.format(res=self.res_dir, sep=os.sep, name=name)

@@ -2,6 +2,7 @@
 
 # -*- coding: utf-8 -*-
 
+import os
 import pygame as pg
 from Events import *
 from Enums import BattleEnum as Battle, SideEnum as Sides, ActionsEnum as Actions, GameEnum
@@ -145,18 +146,23 @@ class SplashState(GameState):
         surface.blit(self.bg, (0, 0))
         surface.blit(self.text, self.text_rect)
 
+class MenuState(GameState):
+    """
+    Base state for menu screens
+    """
 
-class MainMenuState(GameState):
-    def __init__(self, persistent=None):
-        super().__init__(persistent)
+    def __init__(self):
+        super().__init__()
+
+    def load_items(self, res_name, y):
         helper = StringsHelper("en")
         self.font = pg.font.Font(None, 24)
         self.bg = pg.Surface((self.screen_width, self.screen_height))
         self.bg.fill(pg.Color('black'))
-        menu_strings = helper.get_strings("main_menu")
+        menu_strings = helper.get_strings(res_name)
 
         x = self.bg.get_width() / 2
-        y = 250
+        # y = 250
 
         self.menu_items = []
         for i in sorted(menu_strings.keys()):
@@ -196,17 +202,61 @@ class MainMenuState(GameState):
             self.set_cursor()
 
     def choose_item(self):
+        pass
+
+
+class MainMenuState(MenuState):
+    def __init__(self):
+        super().__init__()
+        self.load_items("main_menu", 250)
+
+    def choose_item(self):
         if self.cursor_pos == 0:
             args_dict = {'player_party': None, 'pos_x': 0, 'pos_y': 0, 'map_file': 'resources/maps/world_test.tmx'}
             self.call_state(WorldMapState, args_dict)
         elif self.cursor_pos == 1:
-            pass
+            self.call_state(LoadState, {})
         elif self.cursor_pos == 2:
             pass
         elif self.cursor_pos == 3:
             pass
         elif self.cursor_pos == 4:
             self.quit = True
+
+
+class LoadState(MenuState):
+    """
+    Load screen,accessed from main menu
+    """
+
+    def __init__(self, persistent=None):
+        super().__init__()
+        self.menu = None
+        self.load_items("load_menu", 150)
+
+    def get_event(self, event):
+        if self.menu is None:
+            super().get_event(event)
+            if event.type == pg.KEYDOWN and event.key == pg.K_BACKSPACE:
+                self.exit(None)
+        else:
+            if event.type == pg.KEYDOWN and event.key == pg.K_q:
+                self.menu = None
+
+    def draw(self, surface):
+        super().draw(surface)
+        if self.menu is not None:
+            self.menu.draw(surface)
+
+    def choose_item(self):
+        path = 'saves/save_{}.sf'.format(self.cursor_pos)
+        if os.path.isfile(path):
+            args_dict = {'sub': GameEnum.GameLoadEvent, 'path': path}
+            event = pg.event.Event(EngineEvent, args_dict)
+            pg.event.post(event)
+        else:
+            self.menu = UI.MessageWindow(self.screen_width / 2 - 100, self.screen_height / 2 - 75, 200, 150, "No data in this slot")
+            print("h {} w {}".format(self.screen_height, self.screen_width))
 
 
 class MapState(GameState):
@@ -217,6 +267,10 @@ class MapState(GameState):
             self.player_party = self.persist['player_party']
         else:
             self.player_party = PlayerParty(360, 360)
+        if 'npc_reg' in self.persist.keys():
+            self.npc_registry = self.persist['npc_reg']
+        else:
+            self.npc_registry = []
         self.camera = Camera(Camera.camera_configure_world, self.screen_width, self.screen_width)
         self.tile_size = self.tiled_map.tilewidth
         self.scale_factor = 2  # Tiles are 16x16,so we must draw them 2 times larger
@@ -374,7 +428,10 @@ class MapState(GameState):
                 party = p['party_members'].split(',') if 'party_members' in p.keys() else None
                 bg = p['bg'] if 'bg' in p.keys() else None
                 id = int(p['nid']) if 'nid' in p.keys() else None
-                npc = MapNPC(x,y, party, bg, id)
+                if id is not None and self.npc_registry.count(id) == 0:
+                    npc = MapNPC(x,y, party, bg, id)
+                else:
+                    continue
             npcs.append(npc)
 
         return npcs
@@ -430,13 +487,14 @@ class WorldMapState(MapState):
         self.tiled_map = load_pygame(callback['map_f'])
         self.player_party = callback['player_party']
         self.player_party.set_pos(callback['pos_x'], callback['pos_y'])
+        self.npc_registry = callback['npc_reg']
         self.player_party.reset_scale()  # Reset player party's rect scale after local map
 
     def get_event(self, event):
         super().get_event(event)
         if event.type == TeleportEvent and event.teleport.world == 'localworld':
             tp = event.teleport
-            args_dict = {'player_party': self.player_party, 'pos_x': tp.pos_x, 'pos_y': tp.pos_y, 'map_file': tp.map_f}
+            args_dict = {'player_party': self.player_party, 'npc_reg': self.npc_registry, 'pos_x': tp.pos_x, 'pos_y': tp.pos_y, 'map_file': tp.map_f}
             self.call_state(LocalMapState, args_dict)
         if event.type == pg.KEYDOWN and event.key == pg.K_c:
             self.draw_colliders = not self.draw_colliders
@@ -446,6 +504,7 @@ class LocalMapState(MapState):
     def __init__(self, persistent):
         super().__init__(persistent)
         self.player_party.set_pos(persistent['pos_x'], persistent['pos_y'])
+        self.npc_registry = persistent['npc_reg']
         self.set_bg()
         self.player_party.scale_up()  # Player party's sprite is 2-x scaled on local map
 
@@ -475,7 +534,7 @@ class LocalMapState(MapState):
         super().get_event(event)
         if event.type == TeleportEvent and event.teleport.world == 'overworld':
             tp = event.teleport
-            callback_args = {'player_party': self.player_party, 'pos_x': tp.pos_x, 'pos_y': tp.pos_y, 'map_f': tp.map_f}
+            callback_args = {'player_party': self.player_party, 'npc_reg': self.npc_registry, 'pos_x': tp.pos_x, 'pos_y': tp.pos_y, 'map_f': tp.map_f}
             self.exit(callback_args)
         elif event.type == TeleportEvent and event.teleport.world == 'localworld':
             tp = event.teleport
@@ -492,10 +551,11 @@ class LocalMapState(MapState):
             self.player_party.gold += callback['gold']
             self.remove_npc(callback['id'])
 
-    def remove_npc(self, id):
+    def remove_npc(self, identifier):
         for i in self.npcs:
-            if hasattr(i, 'id') and i.id == id:
+            if hasattr(i, 'id') and i.id == identifier:
                 self.npcs.remove(i)
+                self.npc_registry.append(identifier)
 
 
 class BattleState(GameState):  # TODO: Animations

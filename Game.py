@@ -5,7 +5,6 @@ import Events as evs
 from Enums import GameEnum as sub
 from GameStates import StateStack
 import pickle as pic
-import copy
 
 
 class Game:

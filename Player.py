@@ -585,6 +585,8 @@ class BaseMember:
                 # KOed players (except for revive spells)
             else:
                 return False  # Not enough mana
+        else:
+            return False
 
     def heal(self, points):
         """
