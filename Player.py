@@ -357,7 +357,6 @@ class PlayerParty(pg.sprite.Sprite):
             self.alive_iter = iter(self.current_alive)
             raise StopIteration
 
-
     def get_usable_items(self):
         return [i for i in self.inventory if isinstance(i, Items.Usable)]
 

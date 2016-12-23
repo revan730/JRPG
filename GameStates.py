@@ -146,6 +146,7 @@ class SplashState(GameState):
         surface.blit(self.bg, (0, 0))
         surface.blit(self.text, self.text_rect)
 
+
 class MenuState(GameState):
     """
     Base state for menu screens
@@ -162,7 +163,6 @@ class MenuState(GameState):
         menu_strings = helper.get_strings(res_name)
 
         x = self.bg.get_width() / 2
-        # y = 250
 
         self.menu_items = []
         for i in sorted(menu_strings.keys()):
@@ -373,7 +373,7 @@ class MapState(GameState):
 
     def on_load(self):
         self.tiled_map = load_pygame(self.persist['map_file'])  # reload tiled map
-        self.player_party.on_load() # reload all sprites
+        self.player_party.on_load()  # reload all sprites
         for i in self.npcs:
             i.on_load()
         self.set_bg()
@@ -427,9 +427,9 @@ class MapState(GameState):
             else:
                 party = p['party_members'].split(',') if 'party_members' in p.keys() else None
                 bg = p['bg'] if 'bg' in p.keys() else None
-                id = int(p['nid']) if 'nid' in p.keys() else None
-                if id is not None and self.npc_registry.count(id) == 0:
-                    npc = MapNPC(x,y, party, bg, id)
+                identifier = int(p['nid']) if 'nid' in p.keys() else None
+                if identifier is not None and self.npc_registry.count(identifier) == 0:
+                    npc = MapNPC(x, y, party, bg, identifier)
                 else:
                     continue
             npcs.append(npc)
@@ -543,7 +543,7 @@ class LocalMapState(MapState):
 
     def on_return(self, callback):
         self.player_party.exit_battle()
-        if 'flee' in callback.keys(): # Player escaped from battle
+        if 'flee' in callback.keys():  # Player escaped from battle
             return
         else:
             self.player_party.add_items(callback['loot'])
@@ -572,7 +572,7 @@ class BattleState(GameState):  # TODO: Animations
         self.pause_menu = None
         self.npc_party = None
         self.npc_iter = None  # iterator over npc list
-        self.npc_turn = False  #  Select character from npc party if true
+        self.npc_turn = False  # Select character from npc party if true
         self.current_character = None
         self.current_window = None
         self.loot = []
@@ -629,7 +629,7 @@ class BattleState(GameState):  # TODO: Animations
         rect = image.get_rect()
         rect.height = self.screen_height
         rect.width = self.screen_width
-        image =  pg.transform.scale(image, (self.screen_width, self.screen_height))
+        image = pg.transform.scale(image, (self.screen_width, self.screen_height))
         self.bg = (image, rect)
 
         x = self.screen_width * 0.1
@@ -686,7 +686,6 @@ class BattleState(GameState):  # TODO: Animations
             self.dialog.update(event.key)
         elif self.current_window is not None and event.type == pg.KEYDOWN:
             self.current_window.update(event.key)
-
 
     def handle_battle_events(self, event):
         if event.sub == Battle.ActionSelected:
@@ -795,7 +794,7 @@ class BattleState(GameState):  # TODO: Animations
                 self.status_bar.set_status('Party has no usable items')
                 self.call_action_menu()
         if action == Actions.Flee:
-            if  self.flee() == False:
+            if self.flee() == False:
                 self.call_action_menu()
 
     def apply_action(self, npc):
@@ -809,10 +808,10 @@ class BattleState(GameState):  # TODO: Animations
             status = '{} dealt {} DMG to {}'.format(self.current_character.name, dmg, npc.name)
             self.status_bar.set_status(status)
         elif self.last_action == Actions.Magic:
-            if self.action_magic(npc) == False:
+            if not self.action_magic(npc):
                 return
         elif self.last_action == Actions.Item:
-            if self.action_item(npc) == False:
+            if not self.action_item(npc):
                 return
         self.npc_window.update_items()
         self.party_window.update_items()

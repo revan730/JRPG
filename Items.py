@@ -68,6 +68,7 @@ class Usable(BaseItem):
     def check_appliable(self, target):
         pass
 
+
 class ManaPotion(Usable):
 
     def __init__(self):
@@ -82,6 +83,7 @@ class ManaPotion(Usable):
         else:
             return False
 
+
 class PhoenixDown(Usable):
 
     def __init__(self):
@@ -95,6 +97,7 @@ class PhoenixDown(Usable):
             return True
         else:
             return False
+
 
 class FireBlade(Weapon):
     """
