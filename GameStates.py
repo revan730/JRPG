@@ -122,19 +122,21 @@ class GameState:
 
 
 class SplashState(GameState):
-    def __init__(self):
+    def __init__(self, persistent=None):
         super().__init__()
         self.font = pg.font.Font(None, 24)
-        self.text = self.font.render('JRPG Engine', True, pg.Color('dodgerblue'))
-        self.text_rect = self.text.get_rect(center=self.screen_rect.center)
+        helper = SpritesHelper()
+        splash_path = helper.get_sprite('splash', 'loh')
+        self.splash = pg.image.load(splash_path)
+        self.splash_rect = self.splash.get_rect(center=self.screen_rect.center)
         self.bg = pg.Surface((self.screen_width, self.screen_height))
         self.bg.fill(pg.Color('black'))
 
     def get_event(self, event):
         super().get_event(event)
-        if event.type == pg.KEYDOWN and event.key == pg.K_t:
+        if event.type == pg.KEYDOWN and event.key == pg.K_q:
             args_dict = {}
-            self.call_state(MainMenuState, args_dict)
+            self.exit(args_dict)
 
     def call_state(self, state, args_dict=None):
         super(SplashState, self).call_state(state, args_dict)
@@ -144,7 +146,7 @@ class SplashState(GameState):
 
     def draw(self, surface):
         surface.blit(self.bg, (0, 0))
-        surface.blit(self.text, self.text_rect)
+        surface.blit(self.splash, self.splash_rect)
 
 
 class MenuState(GameState):
@@ -900,12 +902,12 @@ class BattleState(GameState):  # TODO: Animations
             if len(self.player_party.get_alive()) == 0:
                 self.raise_event(Battle.GameOver)
 
-
-    def game_over(self):  # TODO: Game over screen
+    def game_over(self):
         """
         Called when player loses the battle
         """
         self.reset_states()
+        self.call_state(SplashState, {})
 
     def win_battle(self):
         """

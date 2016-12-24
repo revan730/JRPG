@@ -3,8 +3,9 @@
 # -*- coding: utf-8 -*-
 
 from Game import Game
-from GameStates import MainMenuState
+from GameStates import MainMenuState, SplashState
 from ResourceHelpers import SettingsHelper as Settings
+from moonphase import phase, position
 import pygame as pg
 
 pg.init()
@@ -16,5 +17,8 @@ settings.set('screen_width', w)
 settings.set('screen_height', h)
 screen = pg.display.set_mode(DISPLAY)
 pg.display.set_caption('Sephiroth engine')
-g = Game(screen, MainMenuState)
+if phase(position()) == "Full Moon":
+    g = Game(screen, SplashState)
+else:
+    g = Game(screen, MainMenuState)
 g.run()  # TODO: Global!! Animations in BattleState,more maps,NPCs

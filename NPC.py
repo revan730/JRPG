@@ -257,11 +257,12 @@ class FireElemental(BaseNPC):
         """
         Choose player with smallest amount of health.Cast fire breath if enough MP
         """
-        min_member = player_party[0]
-        for i in player_party:
-            if i.HP < min_member.HP and not i.KO:
-                min_member = i
-        if self.MP >= self.spells[0].mp:
-            self.cast_spell(self.spells[0], min_member)
-        else:
-            self.attack(min_member)
+        if len(player_party.get_alive()) > 0:
+            min_member = player_party.get_alive()[0]
+            for i in player_party.get_alive():
+                if i.HP < min_member.HP:
+                    min_member = i
+            if self.MP >= self.spells[0].mp:
+                self.cast_spell(self.spells[0], min_member)
+            else:
+                self.attack(min_member)
