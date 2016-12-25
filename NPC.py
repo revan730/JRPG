@@ -266,3 +266,40 @@ class FireElemental(BaseNPC):
                 self.cast_spell(self.spells[0], min_member)
             else:
                 self.attack(min_member)
+
+
+class WaterElemental(BaseNPC):
+    """
+    Fire elemental NPC.Targets random player
+    """
+
+    Counter = 0
+
+    def __init__(self):
+        super(WaterElemental, self).__init__('water_elem', 40, 0, 20, 10, 10, [], [])
+        self.name = 'Water elemental {}'.format(WaterElemental.Counter + 1)
+        WaterElemental.Counter += 1
+
+    def __del__(self):
+        WaterElemental.Counter -= 1
+
+    def load_sprites(self):
+        helper = SpritesHelper()
+        self.image = pg.transform.scale(pg.image.load(helper.get_sprite('water_elem', 'battle_idle')), (24, 36))
+        self.image.set_colorkey(pg.Color("#fec5c5"))
+        self.rect = self.image.get_rect()
+
+    def load_map_sprite(self):
+        helper = SpritesHelper()
+        image = pg.transform.scale(pg.image.load(helper.get_sprite('water_elem', 'map')), (24, 36))
+        image.set_colorkey(pg.Color("#fec5c5"))
+
+        return image
+
+    def decide(self, player_party, npc_party):
+        """
+        Choose random player
+        """
+        if len(player_party.get_alive()) > 0:
+            r = rand.randint(0, len(player_party.get_alive()))
+            self.attack(player_party.get_alive()[r])

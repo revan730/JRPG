@@ -21,4 +21,4 @@ if phase(position()) == "Full Moon":
     g = Game(screen, SplashState)
 else:
     g = Game(screen, MainMenuState)
-g.run()  # TODO: Global!! Animations in BattleState,more maps,NPCs
+g.run()  # TODO: Global!! more maps,NPCs,settings app (Qt)

@@ -9,7 +9,7 @@ from Enums import BattleEnum as Battle, SideEnum as Sides, ActionsEnum as Action
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
 import UI
 from Player import PlayerParty, Camera, Teleport, BaseMember
-from NPC import Test, FireElemental, BaseNPC, MapNPC, MapTrader, MapWizard
+from NPC import Test, FireElemental, WaterElemental, BaseNPC, MapNPC, MapTrader, MapWizard
 from pytmx import load_pygame
 
 
@@ -560,7 +560,7 @@ class LocalMapState(MapState):
                 self.npc_registry.append(identifier)
 
 
-class BattleState(GameState):  # TODO: Animations
+class BattleState(GameState):
     """
     Game state in which battle with NPC's is handled
     """
@@ -577,6 +577,7 @@ class BattleState(GameState):  # TODO: Animations
         self.npc_turn = False  # Select character from npc party if true
         self.current_character = None
         self.current_window = None
+        self.spell_anim = None
         self.loot = []
         self.gold = 0  # Total amount of gold party gets for battle
         self.experience = 0  # Total amount of experience every member get for battle
@@ -591,13 +592,31 @@ class BattleState(GameState):  # TODO: Animations
         self.load_sprites()
         self.set_ui()
         self.choose_player_character()
+        self.surface = None
 
     def update(self, dt):
         super().update(dt)
+        if self.spell_anim is not None:
+            self.update_anim()
         if self.pause_menu is not None:
             if self.pause_menu.quit:
                 self.pause_menu = None
                 self.on_resume()
+
+    def update_anim(self):
+        """
+        move animation projectile
+        """
+        if self.spell_anim['rect'].x < self.spell_anim['target_rect'].x:
+            self.spell_anim['rect'].x += 5
+        elif self.spell_anim['rect'].x > self.spell_anim['target_rect'].x:
+            self.spell_anim['rect'].x -= 5
+        if self.spell_anim['rect'].y < self.spell_anim['target_rect'].y:
+            self.spell_anim['rect'].y += 1
+        elif self.spell_anim['rect'].y > self.spell_anim['target_rect'].y:
+            self.spell_anim['rect'].y -= 1
+        if self.spell_anim['rect'].colliderect(self.spell_anim['target_rect']):
+            self.spell_anim = None
 
     def load_npc(self):
         """
@@ -660,11 +679,14 @@ class BattleState(GameState):  # TODO: Animations
         self.windows.append(self.status_bar)
 
     def draw(self, surface):
+        self.surface = surface
         surface.blit(*self.bg)
         for i in self.npc_party:
             surface.blit(i.image, i.rect)
         for i in self.player_party.get_battle_sprites():
             surface.blit(*i)
+        if self.spell_anim is not None:
+            surface.blit(self.spell_anim['image'], self.spell_anim['rect'])
         for i in self.windows:
             i.draw(surface)
         if self.dialog is not None:
@@ -827,6 +849,12 @@ class BattleState(GameState):  # TODO: Animations
         if self.current_character.MP >= self.last_action_func.mp:
             if self.last_action_func.check_appliable(npc):
                 self.current_character.cast_spell(self.last_action_func, npc)
+                if isinstance(npc, BaseNPC):# Only on enemies
+                    self.animate_spell(npc)  # Animation magic starts here
+                    while self.spell_anim is not None: # TOTALLY FUCKED UP SHIT
+                        self.update(50)
+                        self.draw(self.surface)
+                        pg.display.update()
                 status = '{} casted {} on {}'.format(self.current_character.name, self.last_action_func, npc.name)
                 self.status_bar.set_status(status)
                 return True
@@ -838,6 +866,19 @@ class BattleState(GameState):  # TODO: Animations
             status = 'Not enough mana to cast {}'.format(self.last_action_func)
             self.status_bar.set_status(status)
             return False
+
+    def animate_spell(self, target):
+        """
+        Called to create moving spell sprite
+        """
+        helper = SpritesHelper()
+        image = pg.image.load(helper.get_sprite(self.last_action_func.name, "projectile"))
+        image.set_colorkey(pg.Color("#7bd5fe"))
+        rect = image.get_rect()
+        rect.x = self.current_character.battle_rect.x
+        rect.y = self.current_character.battle_rect.y
+        target_rect = target.rect
+        self.spell_anim = {'image': image,'rect': rect, 'target_rect': target_rect}
 
     def action_item(self, npc):
         if self.last_action_func.check_appliable(npc):
