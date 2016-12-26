@@ -387,7 +387,7 @@ class MapState(GameState):
         """
         size = self.scaled_size
         colliders = []
-        for i in range(0, len(self.tiled_map.layers) - 1):
+        for i in range(0, len(self.tiled_map.layers) - 2):
             for x, y, image in self.tiled_map.layers[i].tiles():
                 p = self.tiled_map.get_tile_properties(x, y, i)
                 if p['walkable'] == 'false':
@@ -396,16 +396,11 @@ class MapState(GameState):
         return colliders
 
     def create_teleports(self):
-        """
-        Create rectangles to be used as colliders for teleport check
-        :return: list of pygame rect objects
-        """
-        size = self.scaled_size
         teleports = []
-        tp_index = int(self.tiled_map.properties['tp_layer_index'])
-        for x, y, image in self.tiled_map.get_layer_by_name('teleports').tiles():
-            rect = pg.Rect(x * size, y * size, size / 2, size / 2)  # collision occurs too early if size is not halfed
-            p = self.tiled_map.get_tile_properties(x, y, tp_index)
+        size = self.scale_factor
+        for obj in self.tiled_map.get_layer_by_name('teleports'):
+            rect = pg.Rect(int(obj.x) * size, int(obj.y) * size, obj.height, obj.height)  # collision occurs too early if size is not halfed
+            p = obj.properties
             pos_x = int(p['pos_x'])
             pos_y = int(p['pos_y'])
             map_f = MapsHelper.get_map(p['map_f'])
@@ -487,6 +482,9 @@ class WorldMapState(MapState):
 
     def on_return(self, callback):
         self.tiled_map = load_pygame(callback['map_f'])
+        self.colliders = self.create_colliders()
+        self.teleports = self.create_teleports()
+        self.npcs = self.create_npcs()
         self.player_party = callback['player_party']
         self.player_party.set_pos(callback['pos_x'], callback['pos_y'])
         self.npc_registry = callback['npc_reg']
@@ -542,6 +540,9 @@ class LocalMapState(MapState):
             tp = event.teleport
             self.tiled_map = load_pygame(tp.map_f)
             self.player_party.set_pos(tp.pos_x, tp.pos_y)
+            self.colliders = self.create_colliders()
+            self.teleports = self.create_teleports()
+            self.npcs = self.create_npcs()
 
     def on_return(self, callback):
         self.player_party.exit_battle()
@@ -552,6 +553,7 @@ class LocalMapState(MapState):
             self.player_party.add_exp(callback['exp'])
             self.player_party.gold += callback['gold']
             self.remove_npc(callback['id'])
+
 
     def remove_npc(self, identifier):
         for i in self.npcs:
