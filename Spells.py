@@ -72,6 +72,19 @@ class Fireball(Spell):
     def check_appliable(self, target):
         return True  # Spell is always appliable to NPC,as they are removed on knock out
 
+
+class Lightning(Spell):
+
+    def __init__(self):
+        super().__init__('Lightning', 100, 20, 'Deal 25 points of damage', Character.Mage, SideEnum.NPC)
+
+    def apply(self, target):
+        target.apply_damage(25)
+
+    def check_appliable(self, target):
+        return True  # Spell is always appliable to NPC,as they are removed on knock out
+        
+
 class FireBreath(Spell):
     """
     Fire elemental spell

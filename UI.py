@@ -5,7 +5,7 @@
 import pygame as pg
 import os
 from ResourceHelpers import StringsHelper
-from Spells import Fireball
+from Spells import Fireball, Lightning
 from Items import *
 from Enums import CharacterEnum as character, SideEnum as side, ActionsEnum as actions, BattleEnum as Battle, GameEnum
 from Events import MenuQuitEvent, BattleEvent, EngineEvent
@@ -669,7 +669,7 @@ class TraderWindow(Window, Menu):
         self.party = party
         self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
         self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
-        self.buy_items = [ManaPotion()]
+        self.buy_items = [ManaPotion(), HealthPotion(), PhoenixDown()]
         self.load_items()
         self.set_cursor()
 
@@ -765,7 +765,7 @@ class TraderWindow(Window, Menu):
 
     def buy_item(self, item):
         if self.party.gold >= item.cost:
-            self.party.add_items(item)
+            self.party.add_items([item])
             self.party.gold -= item.cost
             self.index -= 1
             self.buy_items.remove(item)
@@ -785,7 +785,7 @@ class WizardWindow(Window, Menu):
         super().__init__(x, y, width, height)
         Menu.__init__(self)
         self.party = party
-        self.buy_items = [Fireball()]
+        self.buy_items = [Fireball(), Lightning()]
         self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
         self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
         self.load_items()

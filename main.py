@@ -9,16 +9,14 @@ from moonphase import phase, position
 import pygame as pg
 
 pg.init()
-h = 600
-w = 800
-DISPLAY = (w, h)
 settings = Settings()
-settings.set('screen_width', w)
-settings.set('screen_height', h)
+w = settings.get('screen_width', 800)
+h = settings.get('screen_height', 600)
+DISPLAY = (w, h)
 screen = pg.display.set_mode(DISPLAY)
-pg.display.set_caption('Sephiroth engine')
+pg.display.set_caption('JRPG')
 if phase(position()) == "Full Moon":
     g = Game(screen, SplashState)
 else:
     g = Game(screen, MainMenuState)
-g.run()  # TODO: Global!! more maps,NPCs,settings app (Qt)
+g.run()

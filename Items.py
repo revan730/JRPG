@@ -84,6 +84,21 @@ class ManaPotion(Usable):
             return False
 
 
+class HealthPotion(Usable):
+
+    def __init__(self):
+        super().__init__('Health potion', 50, 'Restores 20 HP', 1)
+
+    def apply_effect(self, target):
+        target.heal(20)
+
+    def check_appliable(self, target):
+        if target.KO is not True and target.HP < target.MAX_HP:
+            return True
+        else:
+            return False
+
+
 class PhoenixDown(Usable):
 
     def __init__(self):
@@ -106,3 +121,9 @@ class FireBlade(Weapon):
 
     def __init__(self):
         super().__init__('Fire blade', 10, 85, 'Blade made of elemental fire')
+
+
+class StoneArmor(Armor):
+
+    def __init__(self):
+        super().__init__('Stone armor', 25, 100, 'Perfect stone armor')

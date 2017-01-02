@@ -48,10 +48,10 @@ class PlayerParty(pg.sprite.Sprite):
         self.set_animations()
         self.current_anim = None
         self.paused = False
-        item = Items.PhoenixDown()
+        item = Items.HealthPotion()
         sitem = Items.Weapon('BFG', 228, 228, 'Instant kill')
         self.inventory = [item, sitem]  # content of common inventory
-        self.gold = 99999  # Starting gold amount
+        self.gold = 1000  # Starting gold amount
         self.create_party()
         self.current_alive = self.get_alive()
         self.alive_iter = iter(self.current_alive)
@@ -493,7 +493,7 @@ class BaseMember:
     def regenerate(self):
         self.HP = self.MAX_HP
         self.MP = self.MAX_MP
-
+        
     def resurrect(self):
         self.KO = False
         self.regenerate()
@@ -529,7 +529,10 @@ class BaseMember:
         self.battle_rect = self.battle_image.get_rect()
 
     def add_spells(self, *spells):
-        self.spells.extend(list(spells))
+        sp = list(spells)
+        for s in sp:
+            if not any(isinstance(x, s.__class__) for x in self.spells):
+                self.spells.append(s)
 
     def apply_damage(self, dmg):
         """

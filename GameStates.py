@@ -9,7 +9,7 @@ from Enums import BattleEnum as Battle, SideEnum as Sides, ActionsEnum as Action
 from ResourceHelpers import StringsHelper, SettingsHelper, MapsHelper, SpritesHelper
 import UI
 from Player import PlayerParty, Camera, Teleport, BaseMember
-from NPC import Test, FireElemental, WaterElemental, BaseNPC, MapNPC, MapTrader, MapWizard
+from NPC import Test, FireElemental, WaterElemental, EarthElemental, LightElemental, DarkElemental, BaseNPC, MapNPC, MapTrader, MapWizard
 from pytmx import load_pygame
 
 
@@ -218,11 +218,7 @@ class MainMenuState(MenuState):
             self.call_state(WorldMapState, args_dict)
         elif self.cursor_pos == 1:
             self.call_state(LoadState, {})
-        elif self.cursor_pos == 2:
-            pass
-        elif self.cursor_pos == 3:
-            pass
-        elif self.cursor_pos == 4:
+        else:
             self.quit = True
 
 
@@ -547,7 +543,7 @@ class LocalMapState(MapState):
     def on_return(self, callback):
         self.player_party.exit_battle()
         if 'flee' in callback.keys():  # Player escaped from battle
-            return
+            self.player_party.set_pos(self.persist['pos_x'], self.persist['pos_y'])
         else:
             self.player_party.add_items(callback['loot'])
             self.player_party.add_exp(callback['exp'])
@@ -558,8 +554,11 @@ class LocalMapState(MapState):
     def remove_npc(self, identifier):
         for i in self.npcs:
             if hasattr(i, 'id') and i.id == identifier:
-                self.npcs.remove(i)
-                self.npc_registry.append(identifier)
+                if i.id == 8:  # Killed world boss
+                    self.reset_states()
+                else:
+                    self.npcs.remove(i)
+                    self.npc_registry.append(identifier)
 
 
 class BattleState(GameState):
@@ -609,14 +608,17 @@ class BattleState(GameState):
         """
         move animation projectile
         """
+        xvel = 10
+        yvel = 1
+
         if self.spell_anim['rect'].x < self.spell_anim['target_rect'].x:
-            self.spell_anim['rect'].x += 5
+            self.spell_anim['rect'].x += xvel
         elif self.spell_anim['rect'].x > self.spell_anim['target_rect'].x:
-            self.spell_anim['rect'].x -= 5
+            self.spell_anim['rect'].x -= xvel
         if self.spell_anim['rect'].y < self.spell_anim['target_rect'].y:
-            self.spell_anim['rect'].y += 1
+            self.spell_anim['rect'].y += yvel
         elif self.spell_anim['rect'].y > self.spell_anim['target_rect'].y:
-            self.spell_anim['rect'].y -= 1
+            self.spell_anim['rect'].y -= yvel
         if self.spell_anim['rect'].colliderect(self.spell_anim['target_rect']):
             self.spell_anim = None
 

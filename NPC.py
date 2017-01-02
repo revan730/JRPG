@@ -237,7 +237,7 @@ class FireElemental(BaseNPC):
         loot = [{'item': FireBlade, 'rate': 0.1}]
         spells = [Spells.FireBreath()]
         super(FireElemental, self).__init__('fire_elem', 50, 20, 5, 10, 30, loot, spells)
-        self.name = 'Fire elemental {}'.format(FireElemental.Counter + 1)
+        self.name = 'Fire elemental {}'.format(FireElemental.Counter + 1 if FireElemental.Counter > 1 else "")
         FireElemental.Counter += 1
 
     def load_sprites(self):
@@ -277,7 +277,7 @@ class WaterElemental(BaseNPC):
 
     def __init__(self):
         super(WaterElemental, self).__init__('water_elem', 40, 0, 20, 10, 10, [], [])
-        self.name = 'Water elemental {}'.format(WaterElemental.Counter + 1)
+        self.name = 'Water elemental {}'.format(WaterElemental.Counter + 1 if WaterElemental.Counter > 1 else "")
         WaterElemental.Counter += 1
 
     def __del__(self):
@@ -301,5 +301,128 @@ class WaterElemental(BaseNPC):
         Choose random player
         """
         if len(player_party.get_alive()) > 0:
-            r = rand.randint(0, len(player_party.get_alive()))
-            self.attack(player_party.get_alive()[r])
+            self.attack(rand.choice(player_party.get_alive()))
+
+
+class EarthElemental(BaseNPC):
+    """
+    Earth elemental NPC.Targets strongest player
+    """
+
+    Counter = 0
+
+    def __init__(self):
+        super(EarthElemental, self).__init__('earth_elem', 35, 0, 25, 15, 25, [], [])
+        self.name = 'Earth elemental {}'.format(EarthElemental.Counter + 1 if EarthElemental.Counter > 1 else "")
+        EarthElemental.Counter += 1
+
+    def __del__(self):
+        EarthElemental.Counter -= 1
+
+    def load_sprites(self):
+        helper = SpritesHelper()
+        self.image = pg.transform.scale(pg.image.load(helper.get_sprite('earth_elem', 'battle_idle')), (24, 36))
+        self.image.set_colorkey(pg.Color("#fec5c5"))
+        self.rect = self.image.get_rect()
+
+    def load_map_sprite(self):
+        helper = SpritesHelper()
+        image = pg.transform.scale(pg.image.load(helper.get_sprite('earth_elem', 'map')), (24, 36))
+        image.set_colorkey(pg.Color("#fec5c5"))
+
+        return image
+
+    def decide(self, player_party, npc_party):
+        """
+        Choose player with largest amount of health
+        """
+        if len(player_party.get_alive()) > 0:
+            max_member = player_party.get_alive()[0]
+            for i in player_party.get_alive():
+                if i.HP > max_member.HP:
+                    max_member = i
+            self.attack(max_member)
+
+
+class LightElemental(BaseNPC):
+    """
+     Light elemental NPC.Targets player with smallest amount of health first
+    """
+
+    Counter = 0
+
+    def __init__(self):
+        loot = []
+        spells = []
+        super(LightElemental, self).__init__('light_elem', 250, 0, 25, 30, 400, loot, spells)
+        self.name = 'Light elemental {}'.format(LightElemental.Counter + 1 if LightElemental.Counter > 1 else "")
+        LightElemental.Counter += 1
+
+    def __del__(self):
+        LightElemental.Counter -= 1
+
+    def load_sprites(self):
+        helper = SpritesHelper()
+        self.image = pg.transform.scale(pg.image.load(helper.get_sprite('light_elem', 'battle_idle')), (24, 36))
+        self.image.set_colorkey(pg.Color("#fec5c5"))
+        self.rect = self.image.get_rect()
+
+    def load_map_sprite(self):
+        helper = SpritesHelper()
+        image = pg.transform.scale(pg.image.load(helper.get_sprite('light_elem', 'map')), (24, 36))
+        image.set_colorkey(pg.Color("#fec5c5"))
+
+        return image
+
+    def decide(self, player_party, npc_party):
+        """
+        Choose player with smallest amount of health.Cast fire breath if enough MP
+        """
+        if len(player_party.get_alive()) > 0:
+            min_member = player_party.get_alive()[0]
+            for i in player_party.get_alive():
+                if i.HP < min_member.HP:
+                    min_member = i
+            self.attack(min_member)
+
+
+class DarkElemental(BaseNPC):
+    """
+     Darkness elemental NPC.Very hard to beat
+    """
+
+    Counter = 0
+
+    def __init__(self):
+        loot = [{'item': StoneArmor, 'rate': 0.3}]
+        spells = []
+        super(DarkElemental, self).__init__('dark_elem', 500, 0, 25, 60, 1000, loot, spells)
+        self.name = 'Dark elemental {}'.format(DarkElemental.Counter + 1 if DarkElemental.Counter > 1 else "")
+        DarkElemental.Counter += 1
+
+    def __del__(self):
+        DarkElemental.Counter -= 1
+
+    def load_sprites(self):
+        helper = SpritesHelper()
+        self.image = pg.transform.scale(pg.image.load(helper.get_sprite('dark_elem', 'battle_idle')), (24, 36))
+        self.image.set_colorkey(pg.Color("#fec5c5"))
+        self.rect = self.image.get_rect()
+
+    def load_map_sprite(self):
+        helper = SpritesHelper()
+        image = pg.transform.scale(pg.image.load(helper.get_sprite('dark_elem', 'map')), (24, 36))
+        image.set_colorkey(pg.Color("#fec5c5"))
+
+        return image
+
+    def decide(self, player_party, npc_party):
+        """
+        Choose player with smallest amount of health
+        """
+        if len(player_party.get_alive()) > 0:
+            min_member = player_party.get_alive()[0]
+            for i in player_party.get_alive():
+                if i.HP < min_member.HP:
+                    min_member = i
+            self.attack(min_member)
