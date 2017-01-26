@@ -40,6 +40,10 @@ class StateStack:
             self.pop()
 
     def set_persistent(self, persistent):
+        """
+        Transfer information to current state
+        :param persistent: dict - passed info
+        """
         self.peek().persistent = persistent
 
     def update(self, dt):
@@ -47,7 +51,6 @@ class StateStack:
         Call update method of current state
         :param dt: time since last frame
         """
-
         self.peek().update(dt)
 
     def get_event(self, event):
@@ -58,12 +61,20 @@ class StateStack:
         self.peek().get_event(event)
 
     def send_callback(self, callback):
+        """
+        Transfer callback from closed state to current
+        :param callback: dict - closed state callback data
+        """
         self.peek().on_return(callback)
 
 
 class GameState:
 
     def __init__(self, persistent=None):
+        """
+        Initialize game state
+        :param persistent: dict - optional data from previous state
+        """
         self.quit = False
         self.finish = False
         self.screen_rect = pg.display.get_surface().get_rect()
@@ -72,6 +83,10 @@ class GameState:
         self.persist = persistent
 
     def get_event(self, event):
+        """
+        Handles passed event.Must be overriden
+        :param event: pygame event
+        """
         if event.type == pg.QUIT:
             self.quit = True
 
@@ -79,12 +94,22 @@ class GameState:
         pass
 
     def draw(self, surface):
+        """
+        Draws game state graphics on surface
+        :param surface: pygame surface
+        """
         pass
 
     def on_pause(self):
+        """
+        Called when game enters pause state
+        """
         pass
 
     def on_resume(self):
+        """
+        Called when game resumes from pause
+        """
         pass
 
     def on_save(self):
@@ -96,7 +121,7 @@ class GameState:
     def exit(self, args_dict=None):
         """
         Called when state ends and game should return to previous state
-        :param args_dict: dictionary of callback arguments,which will be received by previous state in stack
+        :param args_dict: dictionary of callback arguments, which will be received by previous state in stack
         """
         exit_event = pg.event.Event(EngineEvent, {'sub': GameEnum.StateExitEvent, 'state': '', 'args': args_dict})
         pg.event.post(exit_event)
@@ -906,6 +931,7 @@ class BattleState(GameState):
                 self.current_window.disable()
                 self.current_window = None
             self.call_action_menu()
+            self.party_window.set_current(self.current_character)
 
     def functor_target(self):
         """

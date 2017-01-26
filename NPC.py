@@ -26,7 +26,7 @@ class MapNPC:
     Defines NPC for map state
     """
 
-    def __init__(self,x, y, party, bg, id):
+    def __init__(self, x, y, party, bg, id):
         """
 
         :param party: list of npc party members (turned to objects by eval function)
@@ -49,6 +49,7 @@ class MapNPC:
 
     def on_load(self):
         self.create_map_image()
+
 
 class MapTrader:
     """
@@ -76,7 +77,7 @@ class MapWizard:
     Defines wizard for map state
     """
 
-    def __init__(self,x, y):
+    def __init__(self, x, y):
         self.x = x
         self.y = y
         self.load_sprite()

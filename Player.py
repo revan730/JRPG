@@ -26,6 +26,7 @@ class KOError(Exception):
     def __str__(self):
         return repr(self.value)
 
+
 class PlayerParty(pg.sprite.Sprite):
     """
     Class used to represent player characters' party on world and location map

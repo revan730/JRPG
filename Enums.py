@@ -16,6 +16,7 @@ class GameEnum(Enum):
     GameSaveEvent = 3
     GameLoadEvent = 4
 
+
 @unique
 class BattleEnum(Enum):
     """

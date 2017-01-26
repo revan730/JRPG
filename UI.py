@@ -10,10 +10,14 @@ from Items import *
 from Enums import CharacterEnum as character, SideEnum as side, ActionsEnum as actions, BattleEnum as Battle, GameEnum
 from Events import MenuQuitEvent, BattleEvent, EngineEvent
 
-LBL_BLUE = '#00E6E6'
-LBL_WHITE = 'white'
-LBL_GREEN = 'green'
-LBL_RED = 'red'
+COL_BLUE = '#00E6E6'
+COL_WHITE = 'white'
+COL_GREEN = 'green'
+COL_RED = 'red'
+COL_BACK = COL_BLUE
+COL_TEXT = COL_WHITE
+COL_HIGH = COL_GREEN
+COL_WARN = COL_RED
 
 class MenuItem:
     """
@@ -75,8 +79,8 @@ class InfoItem:
     def __init__(self, text, value, font, size, x, y, padding):
         self.caption = text
         self.font_size = size
-        self.label_color = LBL_BLUE
-        self.value_color = LBL_WHITE
+        self.label_color = COL_BLUE
+        self.value_color = COL_TEXT
         self.font = pg.font.Font(font, size)
         self.x = x
         self.y = y
@@ -105,9 +109,9 @@ class MemberInfoItem(InfoItem):
         self.knocked_out = False  # Set color to red if knocked out
         super().__init__(member.name, None, font, size, x, y, padding)
         self.member = member
-        self.label_color = LBL_WHITE
-        self.active_color = LBL_GREEN
-        self.knocked_color = LBL_RED
+        self.label_color = COL_TEXT
+        self.active_color = COL_HIGH
+        self.knocked_color = COL_WARN
         self.update()
 
     def update(self):
@@ -204,10 +208,10 @@ class Window:
 
     def draw(self, surface):
         surface.blit(self.bg, (self.x, self.y))
-        pg.draw.rect(surface, pg.Color(LBL_WHITE), pg.Rect(self.x, self.y, self.width + 2, 2))
-        pg.draw.rect(surface, pg.Color(LBL_WHITE), pg.Rect(self.x + self.width, self.y, 2, self.height + 2))
-        pg.draw.rect(surface, pg.Color(LBL_WHITE), pg.Rect(self.x, self.y + self.height, self.width + 2, 2))
-        pg.draw.rect(surface, pg.Color(LBL_WHITE), pg.Rect(self.x, self.y + 2, 2, self.height))
+        pg.draw.rect(surface, pg.Color(COL_WHITE), pg.Rect(self.x, self.y, self.width + 2, 2))
+        pg.draw.rect(surface, pg.Color(COL_WHITE), pg.Rect(self.x + self.width, self.y, 2, self.height + 2))
+        pg.draw.rect(surface, pg.Color(COL_WHITE), pg.Rect(self.x, self.y + self.height, self.width + 2, 2))
+        pg.draw.rect(surface, pg.Color(COL_WHITE), pg.Rect(self.x, self.y + 2, 2, self.height))
 
     def update(self, key):
         if key == pg.K_q:
@@ -229,7 +233,7 @@ class MessageWindow(Window):
 
     def __init__(self, x, y, width, height, message):
         super().__init__(x, y, width, height)
-        self.lbl = Label(message, LBL_WHITE, None, 24, self.x + self.width * 0.2, self.y + self.height / 2)
+        self.lbl = Label(message, COL_TEXT, None, 24, self.x + self.width * 0.2, self.y + self.height / 2)
 
     def draw(self, surface):
         super().draw(surface)
@@ -265,7 +269,7 @@ class SelectCharacterWindow(Window, Menu):  # TODO: Raise event on selection.Ref
         y = padding
         ind = 0
         for i in item_strings:
-            item = MenuItem(ind, i, None, font_size, LBL_WHITE, 'green', x, y)
+            item = MenuItem(ind, i, None, font_size, COL_TEXT, 'green', x, y)
             self.menu_items.append(item)
             y += font_size
             ind += 1
@@ -307,7 +311,7 @@ class SelectActionWindow(Window, Menu):
         y = padding
         ind = 0
         for i in item_strings:
-            item = MenuItem(ind, i, None, font_size, LBL_WHITE, 'green', x, y)
+            item = MenuItem(ind, i, None, font_size, COL_TEXT, 'green', x, y)
             self.menu_items.append(item)
             y += font_size * 0.8
             ind += 1
@@ -381,7 +385,7 @@ class PauseWindow(Window, Menu):
         padding = self.height / 2 + self.y - font_size / 2  # starting padding for first item to be near window center
         y = padding
         for i in sorted(item_strings.keys()):
-            item = MenuItem(i, item_strings[i], None, font_size, LBL_WHITE, 'green', x, y)
+            item = MenuItem(i, item_strings[i], None, font_size, COL_TEXT, 'green', x, y)
             self.menu_items.append(item)
             y += font_size
 
@@ -454,8 +458,8 @@ class PartyWindow(Window, Menu):
         rect = self.portrait[1]
         rect.x = self.x + self.width * 0.01
         rect.y = self.y + self.height * 0.01
-        self.drawables.append(Label(self.current_member.name, LBL_BLUE, None,  24, rect.x + rect.width + 10, rect.y + 10))
-        self.drawables.append(Label(str(self.current_member), LBL_BLUE, None, 24, rect.x + rect.width + 10, rect.y + 25))
+        self.drawables.append(Label(self.current_member.name, COL_BLUE, None,  24, rect.x + rect.width + 10, rect.y + 10))
+        self.drawables.append(Label(str(self.current_member), COL_BLUE, None, 24, rect.x + rect.width + 10, rect.y + 25))
 
     def add_info_items(self): # TODO: Font size must be selected to match screen resolution
         font_size = 18
@@ -482,10 +486,10 @@ class PartyWindow(Window, Menu):
     def add_spells(self, left_x, padding_first, font_size):
         x = left_x + self.width * 0.20
         y = padding_first - self.height * 0.06
-        self.drawables.append(Label(self.spell_string, LBL_BLUE, None, 24, x, y))
+        self.drawables.append(Label(self.spell_string, COL_BLUE, None, 24, x, y))
         for i in self.current_member.spells:
             y += self.height * 0.06
-            lbl = Label(str(i), LBL_WHITE, None, font_size, x, y)
+            lbl = Label(str(i), COL_WHITE, None, font_size, x, y)
             self.drawables.append(lbl)
 
     def draw(self, surface):
@@ -507,7 +511,7 @@ class LoadSaveWindow(Window, Menu):
         super().__init__(x, y, width, height)
         Menu.__init__(self)
         self.save_state = True
-        self.state_lbl = Label('Save', LBL_BLUE, None, 18, self.x + 5, self.y + 5)
+        self.state_lbl = Label('Save', COL_BLUE, None, 18, self.x + 5, self.y + 5)
         self.set_items()
 
     def draw(self,surface):
@@ -544,7 +548,7 @@ class LoadSaveWindow(Window, Menu):
         x = self.x + self.width * 0.01
 
         for i in range(1, 13):
-            item = MenuItem(i, 'Save slot {}'.format(i), None, font_size, LBL_WHITE, LBL_GREEN, x, y, False)
+            item = MenuItem(i, 'Save slot {}'.format(i), None, font_size, COL_WHITE, COL_GREEN, x, y, False)
             self.drawables.append(item)
             self.menu_items.append(item)
             y += self.height * 0.06
@@ -584,7 +588,7 @@ class InventoryWindow(Window, Menu):
         self.party = party
         self.description = None
         self.menu_items = []
-        self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
+        self.description = Label('', COL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
         self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
         self.load_items()
         self.set_cursor()
@@ -598,7 +602,7 @@ class InventoryWindow(Window, Menu):
         self.drawables.clear()
         self.menu_items.clear()
         for i in self.party.inventory:
-            item = MenuItem(i, str(i), None, font_size, LBL_WHITE, LBL_BLUE, x, y, False)
+            item = MenuItem(i, str(i), None, font_size, COL_WHITE, COL_BLUE, x, y, False)
             self.drawables.append(item)
             self.menu_items.append(item)
             y += self.height * 0.06
@@ -667,7 +671,7 @@ class TraderWindow(Window, Menu):
         Menu.__init__(self)
         self.sell_state = True  # Determine which state should be processed
         self.party = party
-        self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
+        self.description = Label('', COL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
         self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
         self.buy_items = [ManaPotion(), HealthPotion(), PhoenixDown()]
         self.load_items()
@@ -734,7 +738,7 @@ class TraderWindow(Window, Menu):
         x = self.x + self.width * 0.01
 
         for i in self.party.inventory:
-            item = MenuItem(i, str(i), None, font_size, LBL_WHITE, LBL_BLUE, x, y, False)
+            item = MenuItem(i, str(i), None, font_size, COL_WHITE, COL_BLUE, x, y, False)
             self.drawables.append(item)
             self.menu_items.append(item)
             y += self.height * 0.06
@@ -747,7 +751,7 @@ class TraderWindow(Window, Menu):
         x = self.x + self.width * 0.01
 
         for i in self.buy_items:
-            item = MenuItem(i, str(i), None, font_size, LBL_WHITE, LBL_BLUE, x, y, False)
+            item = MenuItem(i, str(i), None, font_size, COL_WHITE, COL_BLUE, x, y, False)
             self.drawables.append(item)
             self.menu_items.append(item)
             y += self.height * 0.06
@@ -786,7 +790,7 @@ class WizardWindow(Window, Menu):
         Menu.__init__(self)
         self.party = party
         self.buy_items = [Fireball(), Lightning()]
-        self.description = Label('', LBL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
+        self.description = Label('', COL_WHITE, None, 18, self.x + self.width * 0.01, self.y + self.height * 0.05)
         self.gold = InfoItem('Gold', party.gold, None, 18, self.x + self.width * 0.8, self.y + self.height * 0.05, 50)
         self.load_items()
         self.set_cursor()
@@ -830,7 +834,7 @@ class WizardWindow(Window, Menu):
         x = self.x + self.width * 0.01
 
         for i in self.buy_items:
-            item = MenuItem(i, str(i), None, font_size, LBL_WHITE, LBL_BLUE, x, y, False)
+            item = MenuItem(i, str(i), None, font_size, COL_WHITE, COL_BLUE, x, y, False)
             self.drawables.append(item)
             self.menu_items.append(item)
             y += self.height * 0.06

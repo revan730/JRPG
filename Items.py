@@ -102,7 +102,7 @@ class HealthPotion(Usable):
 class PhoenixDown(Usable):
 
     def __init__(self):
-        super().__init__('Phoenix Down', 300, 'Resurrects party member',1)
+        super().__init__('Phoenix Down', 300, 'Resurrects party member', 1)
 
     def apply_effect(self, target):
         target.resurrect()

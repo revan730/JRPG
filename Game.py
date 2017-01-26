@@ -1,5 +1,6 @@
 #!/usr/bin/py
 # -*- coding: utf-8 -*-
+
 import pygame as pg
 import Events as evs
 from Enums import GameEnum as sub
@@ -14,9 +15,9 @@ class Game:
 
     def __init__(self, screen, start_state):
         """
-        Game engine initializator
+        Game engine initialization
         :param screen: pygame display
-        :param start_state: name of starting state
+        :param start_state: name of starting state class
         """
 
         self.finish = False
@@ -31,11 +32,11 @@ class Game:
         Handles all events
         """
         for event in pg.event.get():
-            if event.type == evs.EngineEvent:
-                if event.sub == sub.StateCallEvent:
+            if event.type is evs.EngineEvent:
+                if event.sub is sub.StateCallEvent:
                     self.state_stack.push(event.state(event.args))
                     self.state_stack.set_persistent(event.args)
-                elif event.sub == sub.StateExitEvent:
+                elif event.sub is sub.StateExitEvent:
                     self.state_stack.pop()
                     self.state_stack.send_callback(event.args)
                 elif event.sub is sub.StackResetEvent:
