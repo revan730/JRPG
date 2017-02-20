@@ -200,7 +200,7 @@ class PlayerParty(pg.sprite.Sprite):
 
     def exit_battle(self):
         for i in self:
-            i.regenerate()
+            i.resurrect()
         self.current_alive = None
         self.alive_iter = None
         self.resume()
