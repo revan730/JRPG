@@ -11,7 +11,7 @@ import pygame as pg
 pg.init()
 settings = Settings()
 w = settings.get('screen_width', 800)
-h = settings.get('screen_height', 600)
+h = settings.get('screen_height', 640)
 DISPLAY = (w, h)
 screen = pg.display.set_mode(DISPLAY)
 pg.display.set_caption('JRPG')
@@ -20,3 +20,4 @@ if phase(position()) == "Full Moon":
 else:
     g = Game(screen, MainMenuState)
 g.run()
+

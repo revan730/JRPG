@@ -362,53 +362,60 @@ class PlayerParty(pg.sprite.Sprite):
         return [i for i in self.inventory if isinstance(i, Items.Usable)]
 
 
-class Camera(object):
+class CameraFuncs:
+
+    @staticmethod
+    def centered_camera(camera, target_rect, screen):
+        """
+         Camera function which centers on target
+         :param target_rect: camera's target rect to focus
+         """
+        l, t, _, _ = target_rect
+        _, _, w, h = camera
+        s_width, s_height = screen
+        w_half, h_half = int(s_width / 2), int(s_height / 2)
+        l, t, _, _ = -l + w_half, -t + h_half, w, h  # center player
+
+        l = min(0, l)  # stop scrolling at the left edge
+        l = max(-(camera.width - s_width), l)  # stop scrolling at the right edge
+        t = max(-(camera.height - s_height), t)  # stop scrolling at the bottom
+        t = min(0, t)  # stop scrolling at the top
+
+        return pg.Rect(l, t, w, h)
+
+
+class Camera:
     """
     Camera class used to follow player party in world and location states
     """
 
-    def __init__(self, camera_func, width, heigth):
+    def __init__(self, width, height, camera_func=CameraFuncs.centered_camera):
         """
 
-        :param camera_func: camera function used to configurate camera behavior
+        :param camera_func: camera function used to configure camera behavior
         :param width: width of camera's field of view
         :param heigth: height of camera's field of view
         """
         settings = Settings()
         self.screen_w = settings.get('screen_width', 800)
-        self.screen_h = settings.get('settings_height', 640)
-        self.width = width
-        self.height = heigth
+        self.screen_h = settings.get('screen_height', 640)
         self.camera_func = camera_func
-        self.state = pg.Rect(0, 0, width, heigth)
+        self.state = pg.Rect(0, 0, width, height)
 
-    def apply(self, rect):
+    def apply(self, target):
         """
         Called for every image to be rendered inside camera's POV
         :param rect: image's rectangle
         :return: rect moved relative to camera
         """
-        return rect.move(self.state.topleft)
+        return target.move(self.state.topleft)
 
     def update(self, target):
         """
-        Called to update camera's posotion related to target
-        :param target: camera's target to focus
-        """
+         Called to update camera's position related to target
+         :param target: camera's target to focus
+         """
         self.state = self.camera_func(self.state, target.rect, (self.screen_w, self.screen_h))
-
-    def camera_configure_world(self, target_rect, screen_size):
-        l, t, _, _ = target_rect
-        screen_w, screen_h = screen_size
-        _, _, w, h = self
-        l, t = -l + screen_w / 2, -t + screen_h / 2
-
-        l = min(0, l)
-        l = max(-(self.width - screen_w), l)
-        t = max(-(self.height - screen_h), t)
-        t = min(0, t)
-
-        return pg.Rect(l, t, w, h)
 
 
 class Teleport:

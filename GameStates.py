@@ -151,7 +151,7 @@ class SplashState(GameState):
         super().__init__()
         self.font = pg.font.Font(None, 24)
         helper = SpritesHelper()
-        splash_path = helper.get_sprite('splash', 'loh')
+        splash_path = helper.get_sprite('splash', 'endgame')
         self.splash = pg.image.load(splash_path)
         self.splash_rect = self.splash.get_rect(center=self.screen_rect.center)
         self.bg = pg.Surface((self.screen_width, self.screen_height))
@@ -239,7 +239,7 @@ class MainMenuState(MenuState):
 
     def choose_item(self):
         if self.cursor_pos == 0:
-            args_dict = {'player_party': None, 'pos_x': 0, 'pos_y': 0, 'map_file': 'resources/maps/world_test.tmx'}
+            args_dict = {'player_party': None, 'pos_x': 0, 'pos_y': 0, 'map_file': 'resources/maps/world.tmx'}
             self.call_state(WorldMapState, args_dict)
         elif self.cursor_pos == 1:
             self.call_state(LoadState, {})
@@ -289,15 +289,17 @@ class MapState(GameState):
         if self.persist['player_party'] is not None:
             self.player_party = self.persist['player_party']
         else:
-            self.player_party = PlayerParty(360, 360)
+            self.player_party = PlayerParty(450, 450)
         if 'npc_reg' in self.persist.keys():
             self.npc_registry = self.persist['npc_reg']
         else:
             self.npc_registry = []
-        self.camera = Camera(Camera.camera_configure_world, self.screen_width, self.screen_width)
         self.tile_size = self.tiled_map.tilewidth
         self.scale_factor = 2  # Tiles are 16x16,so we must draw them 2 times larger
         self.scaled_size = self.tile_size * self.scale_factor
+        w = self.tiled_map.width * self.scaled_size
+        h = self.tiled_map.height * self.scaled_size
+        self.camera = Camera(w, h)
         self.colliders = self.create_colliders()
         self.teleports = self.create_teleports()
         self.npcs = self.create_npcs()
