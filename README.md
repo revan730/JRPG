@@ -1,14 +1,14 @@
 # Final Fantasy clone written in Python
 ## Requirements
-* [moonphase.py] (http://inamidst.com/code/moonphase.py)
+* [moonphase.py](http://inamidst.com/code/moonphase.py)
 * pygame - from PyPI
 * pytmx - from PyPI
-* [pyganim] (http://inventwithpython.com/pyganim/)
+* [pyganim](http://inventwithpython.com/pyganim/)
 
-Original resourse files were lost,restored version can be downloaded [here] (https://yadi.sk/d/NLa_bJQw3KnVuM)
+Original resourse files were lost,restored version can be downloaded [here](https://yadi.sk/d/NLa_bJQw3KnVuM)
 
 ## Screenshots
-[imgur] (http://imgur.com/a/E49sj)
+[imgur](http://imgur.com/a/E49sj)
 
 ## Used works
 * https://opengameart.org/content/tiny-16-basic
